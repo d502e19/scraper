@@ -19,6 +19,10 @@ pub enum TaskProcessResult {
     Reject,
 }
 
+const RMQ_QUEUE: &str = "frontier";
+const RMQ_EXCHANGE: &str = "work";
+const RMQ_CONSUMER_NAME: &str = "my_consumer";
+
 pub struct RabbitmqFrontier {
     channel: Channel,
     queue: Queue,
@@ -37,23 +41,23 @@ impl RabbitmqFrontier {
             // we using a "move" closure to reuse the channel
             // once the queue is declared. We could also clone
             // the channel
-            channel.queue_declare("frontier",
+            channel.queue_declare(RMQ_QUEUE,
                                   QueueDeclareOptions::default(),
                                   FieldTable::default()).and_then(move |queue| {
-                println!("channel {} declared queue 'frontier'", id);
+                println!("channel {} declared queue '{}'", id, RMQ_QUEUE);
 
-                channel.exchange_declare("work",
+                channel.exchange_declare(RMQ_EXCHANGE,
                                          ExchangeKind::Fanout,
                                          ExchangeDeclareOptions::default(),
                                          FieldTable::default()).and_then(move |_| {
-                    println!("channel {} declared exchange 'work'", id);
+                    println!("channel {} declared exchange '{}'", id, RMQ_EXCHANGE);
 
-                    channel.queue_bind("frontier",
-                                       "work",
+                    channel.queue_bind(RMQ_QUEUE,
+                                       RMQ_EXCHANGE,
                                        "",
                                        QueueBindOptions::default(),
                                        FieldTable::default()).and_then(move |_| {
-                        println!("channel {} bound 'work' to 'frontier'", id);
+                        println!("channel {} bound '{}' to '{}'", id, RMQ_EXCHANGE, RMQ_QUEUE);
 
                         Ok(RabbitmqFrontier {
                             channel,
@@ -71,14 +75,14 @@ impl RabbitmqFrontier {
 
 impl Frontier for RabbitmqFrontier {
     fn submit_task(&self, task: Task) -> Result<(), ()> {
-        match self.channel.basic_publish("work", "", task.serialise(), BasicPublishOptions::default(), BasicProperties::default()).wait() {
+        match self.channel.basic_publish(RMQ_EXCHANGE, "", task.serialise(), BasicPublishOptions::default(), BasicProperties::default()).wait() {
             Ok(_) => Ok(()),
             Err(_) => Err(()),
         }
     }
 
     fn start_listening<F>(&self, f: F) where F: Fn(Task) -> TaskProcessResult {
-        self.channel.basic_consume(&self.queue, "my_consumer", BasicConsumeOptions::default(), FieldTable::default()).and_then(
+        self.channel.basic_consume(&self.queue, RMQ_CONSUMER_NAME, BasicConsumeOptions::default(), FieldTable::default()).and_then(
             move |consumer| {
                 consumer.for_each(move |dev| {
                     let task = Task::deserialise(dev.data);
