@@ -8,12 +8,12 @@ use tokio::prelude::Stream;
 pub trait Frontier {
     fn submit_task(&self, task: Task) -> Result<(), ()>;
 
-    fn subscribe(&self, f: Box<dyn Fn(Task) -> TaskSubmitResult>);
+    fn start_listening<F>(&self, f: F) where F: Fn(Task) -> TaskProcessResult;
 
     fn close(self) -> Result<(), ()>;
 }
 
-pub enum TaskSubmitResult {
+pub enum TaskProcessResult {
     Ok,
     Err,
     Reject,
@@ -77,21 +77,22 @@ impl Frontier for RabbitmqFrontier {
         }
     }
 
-    fn subscribe(&self, f: Box<dyn Fn(Task) -> TaskSubmitResult>) {
+    fn start_listening<F>(&self, f: F) where F: Fn(Task) -> TaskProcessResult {
         self.channel.basic_consume(&self.queue, "my_consumer", BasicConsumeOptions::default(), FieldTable::default()).and_then(
             move |consumer| {
                 consumer.for_each(move |dev| {
                     let task = Task::deserialise(dev.data);
                     let result = f(task);
                     match result {
-                        TaskSubmitResult::Ok => {
-                            self.channel.basic_ack(dev.delivery_tag, false)
+                        TaskProcessResult::Ok => {
+                            self.channel.basic_ack(dev.delivery_tag, false).wait().expect("Failed to ack");
+                            Ok(())
                         }
-                        TaskSubmitResult::Reject => {
+                        TaskProcessResult::Reject => {
                             // No op, so the task is rescheduled
                             unimplemented!("Ended in Reject-state")
                         }
-                        TaskSubmitResult::Err => {
+                        TaskProcessResult::Err => {
                             panic!("Processing task failed")
                         }
                     }
