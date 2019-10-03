@@ -2,63 +2,33 @@ extern crate futures;
 extern crate tokio;
 extern crate lapin_futures;
 
-use futures::future::Future;
-use lapin_futures as lapin;
-use crate::lapin::ExchangeKind;
-use crate::lapin::{BasicProperties, Client, ConnectionProperties};
-use crate::lapin::options::{BasicPublishOptions, QueueDeclareOptions, ExchangeDeclareOptions, QueueBindOptions};
-use crate::lapin::types::FieldTable;
+mod frontier;
+mod task;
 
-struct Task {
-    url: String,
-}
+use crate::task::Task;
+use crate::frontier::{RabbitmqFrontier, Frontier, TaskProcessResult};
+use std::error::Error;
 
-impl Task {
-    fn serialise(self) -> Vec<u8> {
-        self.url.into_bytes()
-    }
-
-    fn deserialise(data: Vec<u8>) -> Self {
-        Task { url: String::from_utf8(data).unwrap() }
-    }
-}
-
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let addr = "amqp://192.168.99.100:5672/%2f";
+    let seed = Task { url: String::from("https://aau.dk") };
 
-    let msg = Task { url: String::from("https://aau.dk") };
+    let frontier = RabbitmqFrontier::new(addr.to_string()).unwrap();
+    frontier.submit_task(seed).unwrap();
 
-    futures::executor::spawn(
-        Client::connect(&addr, ConnectionProperties::default()).and_then(|client| {
-            // create_channel returns a future that is resolved
-            // once the channel is successfully created
-            client.create_channel()
-        }).and_then(|channel| {
-            let id = channel.id();
-            println!("created channel with id: {}", id);
+    frontier.start_listening(Box::from(|task: Task| {
+        println!("Processing task: {}", task.url);
 
-            // we using a "move" closure to reuse the channel
-            // once the queue is declared. We could also clone
-            // the channel
-            channel.queue_declare("frontier",
-                                  QueueDeclareOptions::default(),
-                                  FieldTable::default()).and_then(move |_| {
-                channel.exchange_declare("work",
-                                         ExchangeKind::Fanout,
-                                         ExchangeDeclareOptions::default(),
-                                         FieldTable::default()).and_then(move |_| {
-                    channel.queue_bind("frontier",
-                                       "work",
-                                       "",
-                                       QueueBindOptions::default(),
-                                       FieldTable::default());
+        let first_new_task = Task { url: format!("{}/0", task.url) };
+        let second_new_task = Task { url: format!("{}/1", task.url) };
 
-                    println!("channel {} declared queue {}", id, "frontier");
+        frontier.submit_task(first_new_task).expect("Failed to submit task");
+        frontier.submit_task(second_new_task).expect("Failed to submit task");
 
-                    channel.basic_publish("work", "", msg.serialise(),
-                                          BasicPublishOptions::default(), BasicProperties::default())
-                })
-            })
-        })
-    ).wait_future().expect("runtime failure");
+        TaskProcessResult::Ok
+    }));
+
+    frontier.close().expect("Could not close subscription");
+
+    Ok(())
 }
