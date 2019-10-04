@@ -1,3 +1,4 @@
+extern crate rand;
 extern crate futures;
 extern crate tokio;
 extern crate lapin_futures;
@@ -8,6 +9,9 @@ mod task;
 use crate::task::Task;
 use crate::frontier::{RabbitmqFrontier, Frontier, TaskProcessResult};
 use std::error::Error;
+use std::thread::sleep;
+use std::time::Duration;
+use rand::Rng;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let addr = "amqp://192.168.99.100:5672/%2f";
@@ -17,13 +21,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     frontier.submit_task(seed).unwrap();
 
     frontier.start_listening(Box::from(|task: Task| {
-        println!("Processing task: {}", task.url);
+        println!("Received task: {}", task.url);
 
-        let first_new_task = Task { url: format!("{}/0", task.url) };
-        let second_new_task = Task { url: format!("{}/1", task.url) };
+        // Simulate processing time
+        let mut rng = rand::thread_rng();
+        let process_time = rng.gen_range(50, 800);
+        sleep(Duration::from_millis(process_time));
 
-        frontier.submit_task(first_new_task).expect("Failed to submit task");
-        frontier.submit_task(second_new_task).expect("Failed to submit task");
+        // Spawn a random amount of new tasks
+        let new_task_count = rng.gen_range(0, 4);
+        for i in 0..new_task_count {
+            let new_task = Task { url: format!("{}/{}", task.url, i) };
+            frontier.submit_task(new_task).expect("Failed to submit task");
+        }
+
+        println!("Task took {}ms to process and spawn {} new tasks", process_time, new_task_count);
 
         TaskProcessResult::Ok
     }));
