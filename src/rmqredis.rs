@@ -9,22 +9,8 @@ use lapin_futures::{BasicProperties, Channel, Client, ConnectionProperties, Exch
 use redis::{FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
 use tokio::prelude::Stream;
 use std::str::from_utf8;
+use crate::traits::{TaskProcessResult, Frontier};
 
-pub trait Frontier {
-    fn submit_task(&self, task: Task) -> Result<(), ()>;
-
-    fn start_listening<F>(&self, f: F)
-    where
-        F: Fn(Task) -> TaskProcessResult;
-
-    fn close(self) -> Result<(), ()>;
-}
-
-pub enum TaskProcessResult {
-    Ok,
-    Err,
-    Reject,
-}
 
 const RMQ_QUEUE: &str = "frontier";
 const RMQ_EXCHANGE: &str = "work";
@@ -89,10 +75,10 @@ impl RabbitmqFrontier {
                     })
             })
             .wait()
-        {
-            Ok(q) => Ok(q),
-            Err(_) => Err(()),
-        }
+            {
+                Ok(q) => Ok(q),
+                Err(_) => Err(()),
+            }
     }
 }
 
@@ -108,15 +94,15 @@ impl Frontier for RabbitmqFrontier {
                 BasicProperties::default(),
             )
             .wait()
-        {
-            Ok(_) => Ok(()),
-            Err(_) => Err(()),
-        }
+            {
+                Ok(_) => Ok(()),
+                Err(_) => Err(()),
+            }
     }
 
     fn start_listening<F>(&self, f: F)
-    where
-        F: Fn(Task) -> TaskProcessResult,
+        where
+            F: Fn(Task) -> TaskProcessResult,
     {
         self.channel
             .basic_consume(
@@ -160,8 +146,8 @@ impl Frontier for RabbitmqFrontier {
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for Task {
     fn write_redis_args<W>(&self, out: &mut W)
-    where
-        W: ?Sized + RedisWrite,
+        where
+            W: ?Sized + RedisWrite,
     {
         out.write_arg(self.url.as_bytes())
     }

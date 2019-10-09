@@ -4,8 +4,9 @@ extern crate tokio;
 extern crate lapin_futures;
 extern crate redis;
 
-mod frontier;
 mod task;
+mod traits;
+mod rmqredis;
 
 use crate::task::Task;
 use crate::frontier::{RabbitmqFrontier, Frontier, TaskProcessResult};
