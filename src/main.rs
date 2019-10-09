@@ -2,6 +2,7 @@ extern crate rand;
 extern crate futures;
 extern crate tokio;
 extern crate lapin_futures;
+extern crate redis;
 
 mod frontier;
 mod task;
@@ -12,8 +13,32 @@ use std::error::Error;
 use std::thread::sleep;
 use std::time::Duration;
 use rand::Rng;
+use redis::Commands;
+use std::collections::HashSet;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
+    let con_result = client.get_connection();
+    match con_result {
+        Ok(mut con) => {
+            let task: Task = Task { url: String::from("aau.dk") };
+            let task2: Task = Task { url: String::from("wikipedia.dk") };
+
+            // Submit tasks to Redis
+            let _ : () = con.sadd("submitted", task)?;
+            let _ : () = con.sadd("submitted", task2)?;
+
+            // Get tasks from Redis
+            let result: HashSet<Task> = con.smembers("submitted")?;
+            println!("Redis contained: {:?}", result);
+        },
+        Err(_) => {
+            println!("Couldn't connect to Redis.")
+        }
+    }
+
+
+    /*
     let addr = "amqp://192.168.99.100:5672/%2f";
     let seed = Task { url: String::from("https://aau.dk") };
 
@@ -41,6 +66,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }));
 
     frontier.close().expect("Could not close subscription");
-
+    */
     Ok(())
 }
