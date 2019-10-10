@@ -4,8 +4,8 @@ pub(crate) trait FrontierSubmitted {
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
 
     fn start_listening<F>(&self, f: F)
-        where
-            F: Fn(&Task) -> TaskProcessResult;
+    where
+        F: Fn(&Task) -> TaskProcessResult;
 
     fn close(self) -> Result<(), ()>;
 
@@ -16,8 +16,8 @@ pub trait Frontier {
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
 
     fn start_listening<F>(&self, f: F)
-        where
-            F: Fn(&Task) -> TaskProcessResult;
+    where
+        F: Fn(&Task) -> TaskProcessResult;
 
     fn close(self) -> Result<(), ()>;
 }
@@ -33,4 +33,3 @@ pub trait Submitted {
 
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
 }
-

@@ -9,7 +9,9 @@ impl Task {
     }
 
     pub fn deserialise(data: Vec<u8>) -> Self {
-        Task { url: String::from_utf8(data).unwrap() }
+        Task {
+            url: String::from_utf8(data).unwrap(),
+        }
     }
 }
 

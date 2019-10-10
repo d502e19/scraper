@@ -1,41 +1,44 @@
-extern crate rand;
 extern crate futures;
-extern crate tokio;
 extern crate lapin_futures;
+extern crate rand;
 extern crate redis;
+extern crate tokio;
 
+mod rmqredis;
+mod split;
 mod task;
 mod traits;
-mod rmq;
-mod split;
-mod rmqredis;
 
 use crate::task::Task;
-use std::error::Error;
 use redis::Commands;
 use std::collections::HashSet;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
     let con_result = client.get_connection();
     match con_result {
         Ok(mut con) => {
-            let task: Task = Task { url: String::from("aau.dk") };
-            let task2: Task = Task { url: String::from("wikipedia.dk") };
+            let task: Task = Task {
+                url: String::from("aau.dk"),
+            };
+            let task2: Task = Task {
+                url: String::from("wikipedia.dk"),
+            };
 
             // Submit tasks to Redis
-            let _ : () = con.sadd("submitted", task)?;
-            let _ : () = con.sadd("submitted", task2)?;
+            let _: () = con.sadd("submitted", &task)?;
+            let _: () = con.sadd("submitted", &task2)?;
 
             // Get tasks from Redis
             let result: HashSet<Task> = con.smembers("submitted")?;
             println!("Redis contained: {:?}", result);
-        },
-        Err(_) => {
-            println!("Couldn't connect to Redis.")
-        }
-    }
 
+            let found: bool = con.sismember("submitted", &task)?;
+            println!("{} is in set: {}", task.url, found);
+        }
+        Err(_) => println!("Couldn't connect to Redis."),
+    }
 
     /*
     let addr = "amqp://192.168.99.100:5672/%2f";
