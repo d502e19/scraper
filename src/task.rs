@@ -4,8 +4,8 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn serialise(self) -> Vec<u8> {
-        self.url.into_bytes()
+    pub fn serialise(&self) -> Vec<u8> {
+        self.url.as_bytes().to_vec()
     }
 
     pub fn deserialise(data: Vec<u8>) -> Self {

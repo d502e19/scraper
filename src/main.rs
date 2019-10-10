@@ -6,14 +6,12 @@ extern crate redis;
 
 mod task;
 mod traits;
+mod rmq;
+mod split;
 mod rmqredis;
 
 use crate::task::Task;
-use crate::frontier::{RabbitmqFrontier, Frontier, TaskProcessResult};
 use std::error::Error;
-use std::thread::sleep;
-use std::time::Duration;
-use rand::Rng;
 use redis::Commands;
 use std::collections::HashSet;
 
