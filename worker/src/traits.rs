@@ -1,7 +1,7 @@
 use crate::task::Task;
 use std::error::Error;
 
-pub(crate) trait FrontierSubmitted {
+pub trait Manager {
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
 
     fn start_listening<F>(&self, f: F)
@@ -29,7 +29,7 @@ pub enum TaskProcessResult {
     Reject,
 }
 
-pub trait Submitted {
+pub trait Collection {
     fn contains(&self, task: &Task) -> Result<bool, ()>;
 
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
