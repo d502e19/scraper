@@ -36,13 +36,13 @@ pub trait Collection {
 }
 
 pub trait Downloader<S> {
-    fn fetch_page(task: Task) -> Result<S, Box<dyn Error>>;
+    fn fetch_page(&self, task: Task) -> Result<S, Box<dyn Error>>;
 }
 
 pub trait Extractor<S, D> {
-    fn extract_content(page: S) -> Result<(Vec<Task>, Vec<D>), Box<dyn Error>>;
+    fn extract_content(&self, page: S) -> Result<(Vec<Task>, Vec<D>), Box<dyn Error>>;
 }
 
 pub trait Archive<D> {
-    fn archive_content(content: D) -> Result<(), Box<dyn Error>>;
+    fn archive_content(&self, content: D) -> Result<(), Box<dyn Error>>;
 }
