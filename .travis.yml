@@ -8,3 +8,8 @@ matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
+script:
+  - cargo build --verbose --all --manifest-path proxy/Cargo.toml
+  - cargo test --verbose --all --manifest-path proxy/Cargo.toml
+  - cargo build --verbose --all --manifest-path worker/Cargo.toml
+  - cargo test --verbose --all --manifest-path worker/Cargo.toml
