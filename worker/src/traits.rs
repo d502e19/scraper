@@ -1,4 +1,5 @@
 use crate::task::Task;
+use std::error::Error;
 
 pub(crate) trait FrontierSubmitted {
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
@@ -32,4 +33,8 @@ pub trait Submitted {
     fn contains(&self, task: &Task) -> Result<bool, ()>;
 
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
+}
+
+pub trait Normaliser{
+    fn normalise(&self, task: Task) -> Result<Task, Box<dyn Error>>;
 }
