@@ -108,7 +108,7 @@ impl Manager for RMQRedisManager {
 
     fn start_listening<F>(&self, f: F)
     where
-        F: Fn(&Task) -> TaskProcessResult,
+        F: Fn(Task) -> TaskProcessResult,
     {
         self.channel
             .basic_consume(
@@ -120,7 +120,7 @@ impl Manager for RMQRedisManager {
             .and_then(move |consumer| {
                 consumer.for_each(move |delivery| {
                     let task = Task::deserialise(delivery.data);
-                    let result = f(&task);
+                    let result = f(task);
                     match result {
                         TaskProcessResult::Ok => {
                             self.channel.basic_ack(delivery.delivery_tag, false)

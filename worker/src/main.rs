@@ -8,6 +8,7 @@ mod rmqredis;
 mod split;
 mod task;
 mod traits;
+mod worker;
 
 use crate::task::Task;
 use redis::Commands;
