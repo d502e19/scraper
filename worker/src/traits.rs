@@ -1,4 +1,5 @@
 use crate::task::Task;
+use std::error::Error;
 
 pub trait Manager {
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
@@ -32,4 +33,16 @@ pub trait Collection {
     fn contains(&self, task: &Task) -> Result<bool, ()>;
 
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
+}
+
+pub trait Downloader<S> {
+    fn fetch_page(task: Task) -> Result<S, Box<dyn Error>>;
+}
+
+pub trait Extractor<S, D> {
+    fn extract_content(page: S) -> Result<(Vec<Task>, Vec<D>), Box<dyn Error>>;
+}
+
+pub trait Archive<D> {
+    fn archive_content(content: D) -> Result<(), Box<dyn Error>>;
 }
