@@ -7,6 +7,7 @@ extern crate tokio;
 mod rmqredis;
 mod split;
 mod task;
+mod defaultnormaliser;
 mod traits;
 
 use crate::task::Task;

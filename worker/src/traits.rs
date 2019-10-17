@@ -45,4 +45,6 @@ pub trait Extractor<S, D> {
 
 pub trait Archive<D> {
     fn archive_content(&self, content: D) -> Result<(), Box<dyn Error>>;
+pub trait Normaliser{
+    fn normalise(&self, task: Task) -> Result<Task, Box<dyn Error>>;
 }
