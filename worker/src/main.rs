@@ -8,6 +8,7 @@ mod rmqredis;
 mod split;
 mod task;
 mod traits;
+mod void;
 
 use crate::task::Task;
 use redis::Commands;
@@ -15,6 +16,8 @@ use std::collections::HashSet;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
+
+
     let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
     let con_result = client.get_connection();
     match con_result {
