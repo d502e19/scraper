@@ -1,5 +1,5 @@
 use crate::task::Task;
-use crate::traits::{FrontierSubmitted, TaskProcessResult};
+use crate::traits::{Manager, TaskProcessResult};
 use futures::future::Future;
 use futures::stream::Stream;
 use lapin_futures::options::{
@@ -35,7 +35,7 @@ impl FromRedisValue for Task {
     }
 }
 
-pub struct RMQRedis {
+pub struct RMQRedisManager {
     addr: String,
     rmq_port: String,
     redis_port: String,
@@ -46,7 +46,7 @@ pub struct RMQRedis {
     redis_set: String,
 }
 
-impl RMQRedis {
+impl RMQRedisManager {
     fn new(
         addr: String,
         rmq_port: String,
@@ -55,7 +55,7 @@ impl RMQRedis {
         routing_key: String,
         queue: String,
         redis_set: String,
-    ) -> Result<RMQRedis, ()> {
+    ) -> Result<RMQRedisManager, ()> {
         Client::connect(
             format!("amqp://{}:{}/%2f", addr, rmq_port).as_str(),
             ConnectionProperties::default(),
@@ -69,7 +69,7 @@ impl RMQRedis {
                         FieldTable::default(),
                     )
                     .and_then(|queue| {
-                        Ok(RMQRedis {
+                        Ok(RMQRedisManager {
                             addr,
                             rmq_port,
                             redis_port,
@@ -87,7 +87,7 @@ impl RMQRedis {
     }
 }
 
-impl FrontierSubmitted for RMQRedis {
+impl Manager for RMQRedisManager {
     fn submit_task(&self, task: &Task) -> Result<(), ()> {
         let result = self
             .channel
@@ -123,19 +123,18 @@ impl FrontierSubmitted for RMQRedis {
                     let result = f(&task);
                     match result {
                         TaskProcessResult::Ok => {
-                            //TODO submit result to data storage
                             self.channel.basic_ack(delivery.delivery_tag, false)
                         }
                         TaskProcessResult::Err => {
                             self.channel.basic_reject(
                                 delivery.delivery_tag,
-                                BasicRejectOptions::default(), //TODO
+                                BasicRejectOptions::default(),
                             )
                         }
                         TaskProcessResult::Reject => {
                             self.channel.basic_reject(
                                 delivery.delivery_tag,
-                                BasicRejectOptions::default(), //TODO
+                                BasicRejectOptions::default(),
                             )
                         }
                     }
