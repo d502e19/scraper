@@ -9,6 +9,7 @@ mod split;
 mod task;
 mod traits;
 mod worker;
+mod void;
 
 use crate::task::Task;
 use redis::Commands;
@@ -16,6 +17,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use crate::worker::Worker;
 use crate::rmqredis::RMQRedisManager;
+use crate::void::Void;
 
 fn main() -> Result<(), Box<dyn Error>> {
     /* // Construct a worker and its components
@@ -28,13 +30,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         "frontier".to_string(),
         "collection".to_string(),
     ).expect("Failed to construct RMQRedisManager");
-
+    let archive = Void::new();
     let worker = Worker::new(
         "Worker1".to_string(),
         manager,
         downloader, // TODO
         extractor, // TODO
-        archive, // TODO
+        archive,
     );
     worker.start();
     */
