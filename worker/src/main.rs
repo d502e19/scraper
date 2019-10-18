@@ -13,6 +13,7 @@ use crate::task::Task;
 use redis::Commands;
 use std::collections::HashSet;
 use std::error::Error;
+use url::Url;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
@@ -20,10 +21,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     match con_result {
         Ok(mut con) => {
             let task: Task = Task {
-                url: String::from("aau.dk"),
+                url: Url::parse("aau.dk")?,
             };
             let task2: Task = Task {
-                url: String::from("wikipedia.dk"),
+                url: Url::parse("wikipedia.dk")?,
             };
 
             // Submit tasks to Redis
