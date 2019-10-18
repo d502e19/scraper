@@ -37,8 +37,8 @@ impl FromRedisValue for Task {
 
 pub struct RMQRedisManager {
     addr: String,
-    rmq_port: String,
-    redis_port: String,
+    rmq_port: u16,
+    redis_port: u16,
     channel: Channel,
     queue: Queue,
     exchange: String,
@@ -49,8 +49,8 @@ pub struct RMQRedisManager {
 impl RMQRedisManager {
     pub fn new(
         addr: String,
-        rmq_port: String,
-        redis_port: String,
+        rmq_port: u16,
+        redis_port: u16,
         exchange: String,
         routing_key: String,
         queue: String,

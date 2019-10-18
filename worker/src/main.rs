@@ -21,8 +21,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     /* // Construct a worker and its components
     let manager = RMQRedisManager::new(
         "192.162.99.100".to_string(),
-        "5672".to_string(),
-        "6379".to_string(),
+        5672,
+        6379,
         "work".to_string(),
         "".to_string(),
         "frontier".to_string(),
