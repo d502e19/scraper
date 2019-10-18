@@ -47,7 +47,7 @@ pub struct RMQRedisManager {
 }
 
 impl RMQRedisManager {
-    fn new(
+    pub fn new(
         addr: String,
         rmq_port: String,
         redis_port: String,
