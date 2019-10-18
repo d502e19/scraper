@@ -12,6 +12,7 @@ impl Task {
 
     pub fn deserialise(data: Vec<u8>) -> Self {
         Task {
+            // TODO; should implement error-checking on unwrapping both string from data and URL-parsing.
             url: Url::parse(String::from_utf8(data).unwrap().as_str()).unwrap(),
         }
     }
