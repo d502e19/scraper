@@ -36,7 +36,7 @@ pub trait Submitted {
 }
 
 pub trait Downloader<S> {
-    fn fetch_page(task: Task) -> Result<S, Box<dyn Error>>;
+    fn fetch_page(&self, task: Task) -> Result<S, Box<dyn Error>>;
 }
 
 pub trait Extractor<S, D> {
