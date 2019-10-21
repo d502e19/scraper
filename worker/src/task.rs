@@ -1,16 +1,19 @@
+use url::Url;
+
 #[derive(Hash, Eq, Debug)]
 pub struct Task {
-    pub url: String,
+    pub url: Url,
 }
 
 impl Task {
     pub fn serialise(&self) -> Vec<u8> {
-        self.url.as_bytes().to_vec()
+        self.url.as_str().as_bytes().to_vec()
     }
 
     pub fn deserialise(data: Vec<u8>) -> Self {
         Task {
-            url: String::from_utf8(data).unwrap(),
+            // TODO; should implement error-checking on unwrapping both string from data and URL-parsing.
+            url: Url::parse(String::from_utf8(data).unwrap().as_str()).unwrap(),
         }
     }
 }
