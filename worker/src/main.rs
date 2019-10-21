@@ -26,8 +26,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let con_result = client.get_connection();
     match con_result {
         Ok(mut con) => {
-            let task: Task = Task { url: Url::parse("erdetfredag.dk")? };
-            let task2: Task = Task { url: Url::parse("wikipedia.dk")?,  };
+            let task: Task = Task { url: Url::parse("http://erdetfredag.dk/")? };
+            let task2: Task = Task { url: Url::parse("http://wikipedia.dk/")?,  };
 
             // Submit tasks to Redis
             let _: () = con.sadd("submitted", &task)?;
