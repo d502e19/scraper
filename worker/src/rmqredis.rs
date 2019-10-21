@@ -1,5 +1,5 @@
 use crate::task::Task;
-use crate::traits::{FrontierSubmitted, TaskProcessResult};
+use crate::traits::{Manager, TaskProcessResult};
 use futures::future::Future;
 use futures::stream::Stream;
 use lapin_futures::options::{
@@ -9,6 +9,8 @@ use lapin_futures::types::FieldTable;
 use lapin_futures::{BasicProperties, Channel, Client, ConnectionProperties, Queue};
 use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRedisArgs, Value};
 use std::str::from_utf8;
+use url::Url;
+use std::io::{Error, ErrorKind};
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
@@ -16,7 +18,7 @@ impl ToRedisArgs for &Task {
     where
         W: ?Sized + RedisWrite,
     {
-        out.write_arg(self.url.as_bytes())
+        out.write_arg(self.url.as_str().as_bytes())
     }
 }
 
@@ -24,18 +26,13 @@ impl ToRedisArgs for &Task {
 impl FromRedisValue for Task {
     fn from_redis_value(v: &Value) -> Result<Self, RedisError> {
         match *v {
-            Value::Data(ref bytes) => Ok(Task {
-                url: from_utf8(bytes)?.to_string(),
-            }),
-            _ => panic!((
-                "Response type could not be translated to a Task.",
-                format!("Response was {:?}", v)
-            )),
+            Value::Data(ref bytes) => Ok(Task::deserialise(bytes.to_owned())),
+            _ => Err(RedisError::from(Error::new(ErrorKind::Other, "Response could not be translated to a task"))),
         }
     }
 }
 
-pub struct RMQRedis {
+pub struct RMQRedisManager {
     addr: String,
     rmq_port: String,
     redis_port: String,
@@ -46,7 +43,7 @@ pub struct RMQRedis {
     redis_set: String,
 }
 
-impl RMQRedis {
+impl RMQRedisManager {
     fn new(
         addr: String,
         rmq_port: String,
@@ -55,7 +52,7 @@ impl RMQRedis {
         routing_key: String,
         queue: String,
         redis_set: String,
-    ) -> Result<RMQRedis, ()> {
+    ) -> Result<RMQRedisManager, ()> {
         Client::connect(
             format!("amqp://{}:{}/%2f", addr, rmq_port).as_str(),
             ConnectionProperties::default(),
@@ -69,7 +66,7 @@ impl RMQRedis {
                         FieldTable::default(),
                     )
                     .and_then(|queue| {
-                        Ok(RMQRedis {
+                        Ok(RMQRedisManager {
                             addr,
                             rmq_port,
                             redis_port,
@@ -87,7 +84,7 @@ impl RMQRedis {
     }
 }
 
-impl FrontierSubmitted for RMQRedis {
+impl Manager for RMQRedisManager {
     fn submit_task(&self, task: &Task) -> Result<(), ()> {
         let result = self
             .channel
@@ -123,19 +120,18 @@ impl FrontierSubmitted for RMQRedis {
                     let result = f(&task);
                     match result {
                         TaskProcessResult::Ok => {
-                            //TODO submit result to data storage
                             self.channel.basic_ack(delivery.delivery_tag, false)
                         }
                         TaskProcessResult::Err => {
                             self.channel.basic_reject(
                                 delivery.delivery_tag,
-                                BasicRejectOptions::default(), //TODO
+                                BasicRejectOptions::default(),
                             )
                         }
                         TaskProcessResult::Reject => {
                             self.channel.basic_reject(
                                 delivery.delivery_tag,
-                                BasicRejectOptions::default(), //TODO
+                                BasicRejectOptions::default(),
                             )
                         }
                     }

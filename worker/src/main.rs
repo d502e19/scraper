@@ -9,6 +9,7 @@ mod split;
 mod task;
 mod traits;
 mod downloader;
+mod void;
 
 use crate::task::Task;
 use redis::Commands;
@@ -16,6 +17,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use crate::downloader::DefaultDownloader;
 use crate::traits::Downloader;
+use url::Url;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
@@ -23,10 +25,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     match con_result {
         Ok(mut con) => {
             let task: Task = Task {
-                url: String::from("http://erdetfredag.dk"),
+
+                url: Url::parse("erdetfredag.dk")?,
+
             };
             let task2: Task = Task {
-                url: String::from("wikipedia.dk"),
+                url: Url::parse("wikipedia.dk")?,
             };
 
             // Submit tasks to Redis
