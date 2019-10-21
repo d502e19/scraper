@@ -4,6 +4,16 @@ extern crate rand;
 extern crate redis;
 extern crate tokio;
 
+use std::collections::HashSet;
+use std::error::Error;
+
+use redis::Commands;
+use url::Url;
+
+use crate::downloader::DefaultDownloader;
+use crate::task::Task;
+use crate::traits::Downloader;
+
 mod rmqredis;
 mod split;
 mod task;
@@ -11,27 +21,13 @@ mod traits;
 mod downloader;
 mod void;
 
-use crate::task::Task;
-use redis::Commands;
-use std::collections::HashSet;
-use std::error::Error;
-use crate::downloader::DefaultDownloader;
-use crate::traits::Downloader;
-use url::Url;
-
 fn main() -> Result<(), Box<dyn Error>> {
     let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
     let con_result = client.get_connection();
     match con_result {
         Ok(mut con) => {
-            let task: Task = Task {
-
-                url: Url::parse("erdetfredag.dk")?,
-
-            };
-            let task2: Task = Task {
-                url: Url::parse("wikipedia.dk")?,
-            };
+            let task: Task = Task { url: Url::parse("erdetfredag.dk")? };
+            let task2: Task = Task { url: Url::parse("wikipedia.dk")?,  };
 
             // Submit tasks to Redis
             let _: () = con.sadd("submitted", &task)?;
@@ -44,10 +40,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             let found: bool = con.sismember("submitted", &task)?;
             println!("{} is in set: {}", task.url, found);
 
+
             let dl: DefaultDownloader = DefaultDownloader;
             let data = dl.fetch_page(task);
             println!("{:?}", String::from_utf8(data.unwrap()))
-
         }
         Err(_) => println!("Couldn't connect to Redis."),
     }

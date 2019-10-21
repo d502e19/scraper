@@ -16,8 +16,6 @@ pub(crate) struct DefaultDownloader;
 impl Downloader<Vec<u8>> for DefaultDownloader {
     fn fetch_page(&self, task: Task) -> Result<Vec<u8>, Box<dyn Error>> {
 
-        //convert task.url to str from String
-        //match reqwest::get(&*task.url) {
         match reqwest::get(task.url.as_str()) {
             Ok(mut res) => {
                 let mut body: Vec<u8> = Vec::new();
