@@ -73,4 +73,12 @@ impl fmt::Display for NormaliseError {
 }
 
 impl Error for NormaliseError {}
+use std::fmt::Error;
+use url::Url;
+use url_normalizer::normalize;
+
+
+pub struct DefaultNormaliser {}
+
+impl Normaliser {}
 
