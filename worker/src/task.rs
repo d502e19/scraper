@@ -23,3 +23,28 @@ impl PartialEq for Task {
         self.url == other.url
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::task;
+    use url::Url;
+    use crate::task::Task;
+
+    #[test]
+    /// Test if serialisation and deserialisation does not change the Task
+    fn serialise_deserialise() {
+        let task1 = task::Task {
+            url: Url::parse("http://aau.dk/").unwrap(),
+        };
+        let task1_serialised = task1.serialise();
+        let task1_regen = Task::deserialise(task1_serialised);
+        assert_eq!(task1, task1_regen);
+    }
+
+    #[test]
+    fn normalisation_equality() {
+        let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
+        let task2 = task::Task { url: Url::parse("http://aau.dk/").unwrap() };
+        assert_eq!(task1, task2)
+    }
+}
