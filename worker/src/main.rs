@@ -8,11 +8,14 @@ mod rmqredis;
 mod split;
 mod task;
 mod traits;
+mod downloader;
 
 use crate::task::Task;
 use redis::Commands;
 use std::collections::HashSet;
 use std::error::Error;
+use crate::downloader::DefaultDownloader;
+use crate::traits::Downloader;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
@@ -36,6 +39,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let found: bool = con.sismember("submitted", &task)?;
             println!("{} is in set: {}", task.url, found);
+
+            let dl: DefaultDownloader = DefaultDownloader::new();
+            let data = dl.fetch_page(task2);
         }
         Err(_) => println!("Couldn't connect to Redis."),
     }
@@ -69,5 +75,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     frontier.close().expect("Could not close subscription");
     */
-    Ok(())
+    Result::Ok(())
 }
