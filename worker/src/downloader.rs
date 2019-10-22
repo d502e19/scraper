@@ -24,7 +24,7 @@ impl Downloader<Vec<u8>> for DefaultDownloader {
                     Ok(_) => {
                         Ok(body)
                     }
-                    //otherwise erro
+                    //otherwise error
                     Err(e) => {
                         Err(Box::new(e))
                     }
