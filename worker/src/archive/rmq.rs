@@ -26,12 +26,17 @@ impl <D>Archive<D> for RabbitMQArchive
     where D: Into<Vec<u8>>{
     fn archive_content(&self, content: D) -> Result<(), Box<dyn Error>> {
         let bytes = content.into();
-        self.channel.basic_publish(
+        let res = self.channel.basic_publish(
             self.exchange.as_str(),
             self.routing_key.as_str(),
             bytes,
             BasicPublishOptions::default(),
             BasicProperties::default(),
-        ).wait()
+        ).wait();
+
+        match res {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Box::new(e)),
+        }
     }
 }
