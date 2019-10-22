@@ -77,5 +77,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     frontier.close().expect("Could not close subscription");
     */
-    Result::Ok(())
+    Ok(())
 }
