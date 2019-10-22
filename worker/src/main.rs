@@ -16,6 +16,8 @@ use redis::Commands;
 use std::collections::HashSet;
 use std::error::Error;
 use url::Url;
+use crate::defaultnormaliser::DefaultNormaliser;
+use crate::traits::Normaliser;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
@@ -42,6 +44,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         Err(_) => println!("Couldn't connect to Redis."),
     }
+
+    let normaliser = DefaultNormaliser;
+
+    println!("{}",normaliser.normalise(Task { url : Url::parse("HTTPS://user:pass@sub.HOST.cOm:8080/p/.././a/t/h?query=string#hash").unwrap()}).unwrap().url.to_string());
+
 
     /*
     let addr = "amqp://192.168.99.100:5672/%2f";
