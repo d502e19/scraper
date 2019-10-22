@@ -114,7 +114,6 @@ mod tests {
         match result {
             Ok((tasks, _)) => {
                 assert_eq!(tasks.len(), 1);
-                //panic!("{}", tasks[0].url.as_str());
                 assert_eq!(tasks[0].url.as_str(), "http://ref.ref/test");
             },
             Err(_) => panic!(),
