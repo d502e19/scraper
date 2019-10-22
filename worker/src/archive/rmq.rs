@@ -1,4 +1,5 @@
-use lapin_futures::{Channel, Queue};
+use lapin_futures::{Channel, BasicProperties};
+use lapin_futures::options::BasicPublishOptions;
 use crate::traits::Archive;
 use std::error::Error;
 use futures::Future;
