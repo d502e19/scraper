@@ -8,16 +8,20 @@ mod rmqredis;
 mod split;
 mod task;
 mod traits;
-mod worker;
+mod downloader;
 mod void;
+mod extractor;
+mod worker;
 
+use crate::downloader::DefaultDownloader;
 use crate::task::Task;
-use redis::Commands;
-use std::collections::HashSet;
-use std::error::Error;
+use crate::traits::Downloader;
 use crate::worker::Worker;
 use crate::rmqredis::RMQRedisManager;
 use crate::void::Void;
+use std::collections::HashSet;
+use std::error::Error;
+use redis::Commands;
 
 fn main() -> Result<(), Box<dyn Error>> {
     /* // Construct a worker and its components

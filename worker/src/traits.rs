@@ -1,5 +1,6 @@
 use crate::task::Task;
 use std::error::Error;
+use url::Url;
 
 pub trait Manager {
     fn submit_task(&self, task: &Task) -> Result<(), ()>;
@@ -36,11 +37,11 @@ pub trait Collection {
 }
 
 pub trait Downloader<S> {
-    fn fetch_page(&self, task: Task) -> Result<S, Box<dyn Error>>;
+    fn fetch_page(&self, task: &Task) -> Result<S, Box<dyn Error>>;
 }
 
 pub trait Extractor<S, D> {
-    fn extract_content(&self, page: S) -> Result<(Vec<Task>, Vec<D>), Box<dyn Error>>;
+    fn extract_content(&self, page: S, url: &Url) -> Result<(Vec<Task>, Vec<D>), Box<dyn Error>>;
 }
 
 pub trait Archive<D> {

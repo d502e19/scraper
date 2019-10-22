@@ -43,16 +43,16 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
     /// Starts the worker. It will now listen to the manager for new tasks are resolve those.
     /// This is a blocking operation.
     pub fn start(&self) {
-        self.manager.start_listening(|task| {
+        self.manager.start_listening(move |task| {
             println!("Worker {} received task {}", self.name, task.url);
             // TODO: Proper error handling
-            match self.downloader.fetch_page(task) {
+            match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     eprintln!("{} failed to download a page.", self.name);
                     TaskProcessResult::Err
                 }
                 Ok(page) => {
-                    match self.extractor.extract_content(page) {
+                    match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
                             eprintln!("{} failed to extract data from page.", self.name);
                             TaskProcessResult::Err
@@ -61,6 +61,7 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
                             for datum in data {
                                 if let Err(e) = self.archive.archive_content(datum) {
                                     eprintln!("{} failed archiving some data.", self.name);
+                                    return TaskProcessResult::Err;
                                 }
                             }
 
@@ -69,10 +70,12 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
                                     if !exists {
                                         if let Err(_) = self.manager.submit_task(task) {
                                             eprintln!("{} failed submitting a new task to the manager.", self.name);
+                                            return TaskProcessResult::Err;
                                         }
                                     }
                                 } else {
-                                    eprintln!("{} failed to check if a new task is present in the collection. Skipping that task.", self.name)
+                                    eprintln!("{} failed to check if a new task is present in the collection. Skipping that task.", self.name);
+                                    return TaskProcessResult::Err;
                                 }
                             }
 

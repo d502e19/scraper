@@ -9,6 +9,8 @@ use lapin_futures::types::FieldTable;
 use lapin_futures::{BasicProperties, Channel, Client, ConnectionProperties, Queue};
 use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRedisArgs, Value};
 use std::str::from_utf8;
+use url::Url;
+use std::io::{Error, ErrorKind};
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
@@ -16,7 +18,7 @@ impl ToRedisArgs for &Task {
     where
         W: ?Sized + RedisWrite,
     {
-        out.write_arg(self.url.as_bytes())
+        out.write_arg(self.url.as_str().as_bytes())
     }
 }
 
@@ -24,13 +26,8 @@ impl ToRedisArgs for &Task {
 impl FromRedisValue for Task {
     fn from_redis_value(v: &Value) -> Result<Self, RedisError> {
         match *v {
-            Value::Data(ref bytes) => Ok(Task {
-                url: from_utf8(bytes)?.to_string(),
-            }),
-            _ => panic!((
-                "Response type could not be translated to a Task.",
-                format!("Response was {:?}", v)
-            )),
+            Value::Data(ref bytes) => Ok(Task::deserialise(bytes.to_owned())),
+            _ => Err(RedisError::from(Error::new(ErrorKind::Other, "Response could not be translated to a task"))),
         }
     }
 }
