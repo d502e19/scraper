@@ -11,7 +11,7 @@ pub(crate) struct DefaultDownloader;
 
 
 impl Downloader<Vec<u8>> for DefaultDownloader {
-    ///If function is successfull it will return a Vec<u8> with the page contents, otherwise Error
+    ///If function is successful it will return a Vec<u8> with the page contents, otherwise Error
     fn fetch_page(&self, task: Task) -> Result<Vec<u8>, Box<dyn Error>> {
 
         //attempts to get html from url
@@ -20,7 +20,7 @@ impl Downloader<Vec<u8>> for DefaultDownloader {
                 //read html as bytes into vec
                 let mut body: Vec<u8> = Vec::new();
                 match res.read_to_end(&mut body) {
-                    //if successfull return the vec with bytes
+                    //if successful return the vec with bytes
                     Ok(_) => {
                         Ok(body)
                     }
