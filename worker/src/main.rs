@@ -9,6 +9,7 @@ mod split;
 mod task;
 mod traits;
 mod void;
+mod extractor;
 
 use crate::task::Task;
 use redis::Commands;
