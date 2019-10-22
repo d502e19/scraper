@@ -5,7 +5,7 @@ use scraper::{Html, Selector};
 use std::marker::PhantomData;
 use url::Url;
 
-struct HTMLExtractorBase<D, H: HTMLExtractor<D>> {
+pub struct HTMLExtractorBase<D, H: HTMLExtractor<D>> {
     _marker: PhantomData<D>,
     html_extractor: H,
 }
@@ -19,8 +19,8 @@ impl <D, H>Extractor<Vec<u8>, D> for HTMLExtractorBase<D, H> where H: HTMLExtrac
     }
 }
 
-impl <D, H: HTMLExtractor<D>>HTMLExtractorBase<D, H> {
-    fn new(html_extractor: H) -> HTMLExtractorBase<D, H> {
+impl<D, H: HTMLExtractor<D>> HTMLExtractorBase<D, H> {
+    pub fn new(html_extractor: H) -> HTMLExtractorBase<D, H> {
         HTMLExtractorBase {
             _marker: PhantomData,
             html_extractor
@@ -37,7 +37,7 @@ pub struct HTMLLinkExtractor {
 }
 
 impl HTMLLinkExtractor {
-    fn new() -> HTMLLinkExtractor {
+    pub fn new() -> HTMLLinkExtractor {
         HTMLLinkExtractor {
             link_selector: Selector::parse("a").expect("anchor tag selector")
         }

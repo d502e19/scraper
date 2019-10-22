@@ -43,6 +43,7 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
     /// Starts the worker. It will now listen to the manager for new tasks are resolve those.
     /// This is a blocking operation.
     pub fn start(&self) {
+        println!("Worker {} has started!", self.name);
         self.manager.start_listening(move |task| {
             println!("Worker {} received task {}", self.name, task.url);
             // TODO: Proper error handling

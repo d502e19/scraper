@@ -19,12 +19,13 @@ use crate::traits::Downloader;
 use crate::worker::Worker;
 use crate::rmqredis::RMQRedisManager;
 use crate::void::Void;
+use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
 use std::collections::HashSet;
 use std::error::Error;
 use redis::Commands;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    /* // Construct a worker and its components
+    // Construct a worker and its components
     let manager = RMQRedisManager::new(
         "192.162.99.100".to_string(),
         5672,
@@ -34,16 +35,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         "frontier".to_string(),
         "collection".to_string(),
     ).expect("Failed to construct RMQRedisManager");
-    let archive = Void::new();
+    let downloader = DefaultDownloader;
+    let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
+    let archive = Void;
     let worker = Worker::new(
         "Worker1".to_string(),
         manager,
-        downloader, // TODO
-        extractor, // TODO
+        downloader,
+        extractor,
         archive,
     );
     worker.start();
-    */
+
     println!("Hello from worker!");
     Ok(())
 }
