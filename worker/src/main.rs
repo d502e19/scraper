@@ -20,6 +20,7 @@ mod task;
 mod traits;
 mod downloader;
 mod void;
+mod extractor;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let client = redis::Client::open("redis://192.168.99.100:6379/").unwrap();
