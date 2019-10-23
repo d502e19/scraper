@@ -30,8 +30,8 @@ mod tests {
     use url::Url;
     use crate::task::Task;
 
-    #[test]
     /// Test if serialisation and deserialisation does not change the Task
+    #[test]
     fn serialise_deserialise() {
         let task1 = task::Task {
             url: Url::parse("http://aau.dk/").unwrap(),
@@ -41,10 +41,51 @@ mod tests {
         assert_eq!(task1, task1_regen);
     }
 
+    /// Equality between two identical URLs
     #[test]
-    fn normalisation_equality() {
+    fn normalisation_equality_1() {
         let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
-        let task2 = task::Task { url: Url::parse("http://aau.dk/").unwrap() };
+        let task2 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
         assert_eq!(task1, task2)
+    }
+
+    /// Equality between all-caps and all lower-caps
+    #[test]
+    fn normalisation_equality_2() {
+        let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
+        let task2 = task::Task { url: Url::parse("HTTP://AAU.DK/").unwrap() };
+        assert_eq!(task1, task2)
+    }
+
+    /// Equality between implicit port of protocol and explicit
+    #[test]
+    fn normalisation_equality_3() {
+        let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
+        let task2 = task::Task { url: Url::parse("http://aau.dk:80").unwrap() };
+        assert_eq!(task1, task2)
+    }
+
+    /// Simple inequality between two different domains
+    #[test]
+    fn normalisation_inequality_1() {
+        let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
+        let task2 = task::Task { url: Url::parse("http://aaau.dk/").unwrap() };
+        assert_ne!(task1, task2)
+    }
+
+    /// Domain labels change semantics and as such these two URLs are inequal
+    #[test]
+    fn normalisation_inequality_2() {
+        let task1 = task::Task { url: Url::parse("https://aau.dk").unwrap() };
+        let task2 = task::Task { url: Url::parse("https://www.aau.dk").unwrap() };
+        assert_ne!(task1, task2)
+    }
+
+    /// Inequality of different port to implicit port of protocol
+    #[test]
+    fn normalisation_inequality_3() {
+        let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
+        let task2 = task::Task { url: Url::parse("https://aau.dk:81").unwrap() };
+        assert_ne!(task1, task2)
     }
 }
