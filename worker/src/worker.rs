@@ -1,9 +1,10 @@
-use crate::traits::{Manager, Downloader, Extractor, Archive, TaskProcessResult};
+use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult};
 use std::marker::PhantomData;
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
-pub struct Worker<M, L, E, A, S, D> where
+pub struct Worker<M, L, E, A, S, D>
+where
     M: Manager,
     L: Downloader<S>,
     E: Extractor<S, D>,
@@ -21,7 +22,8 @@ pub struct Worker<M, L, E, A, S, D> where
     _data_type_marker: PhantomData<D>,
 }
 
-impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
+impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D>
+where
     M: Manager,
     L: Downloader<S>,
     E: Extractor<S, D>,
@@ -41,9 +43,10 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
     }
 
     /// Starts the worker. It will now listen to the manager for new tasks are resolve those.
+    /// Resolving includes downloading, extracting, archiving, and submitting new tasks.
     /// This is a blocking operation.
     pub fn start(&self) {
-        println!("Worker {} has started!", self.name);
+        println!("Worker {} has started", self.name);
         self.manager.start_listening(move |task| {
             println!("Worker {} received task {}", self.name, task.url);
             // TODO: Proper error handling
@@ -59,6 +62,7 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
                             TaskProcessResult::Err
                         }
                         Ok((tasks, data)) => {
+                            // Archiving
                             for datum in data {
                                 if let Err(e) = self.archive.archive_content(datum) {
                                     eprintln!("{} failed archiving some data.", self.name);
@@ -66,6 +70,7 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
                                 }
                             }
 
+                            // Check if extracted links are new, if they are, submit them
                             for task in &tasks {
                                 if let Ok(exists) = self.manager.contains(task) {
                                     if !exists {
@@ -75,7 +80,7 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D> where
                                         }
                                     }
                                 } else {
-                                    eprintln!("{} failed to check if a new task is present in the collection. Skipping that task.", self.name);
+                                    eprintln!("{} failed to check if a new task is present in the collection. Ignoring that task.", self.name);
                                     return TaskProcessResult::Err;
                                 }
                             }
