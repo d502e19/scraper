@@ -4,6 +4,12 @@ extern crate rand;
 extern crate redis;
 extern crate tokio;
 
+use std::collections::HashSet;
+use std::error::Error;
+
+use redis::Commands;
+use url::Url;
+
 use crate::downloader::DefaultDownloader;
 use crate::task::Task;
 use crate::traits::Downloader;
@@ -16,6 +22,7 @@ mod traits;
 mod downloader;
 mod void;
 
+use crate::task::Task;
 use redis::Commands;
 use std::collections::HashSet;
 use std::error::Error;
