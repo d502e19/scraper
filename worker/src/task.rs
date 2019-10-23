@@ -32,13 +32,24 @@ mod tests {
 
     /// Test if serialisation and deserialisation does not change the Task
     #[test]
-    fn serialise_deserialise() {
-        let task1 = task::Task {
-            url: Url::parse("http://aau.dk/").unwrap(),
-        };
+    fn serialise_deserialise_success() {
+        let task1 = task::Task { url: Url::parse("http://aau.dk/").unwrap() };
         let task1_serialised = task1.serialise();
         let task1_regen = Task::deserialise(task1_serialised);
         assert_eq!(task1, task1_regen);
+    }
+
+    /// Test if serialisation and deserialisation on two different tasks still makes them unequal
+    #[test]
+    fn serialise_deserialise_failure() {
+        let task1 = task::Task { url: Url::parse("http://aau.dk/").unwrap() };
+        let task2 = task::Task { url: Url::parse("http://aau2.dk/").unwrap() };
+
+        let task1_serialised = task1.serialise();
+        let task2_serialised = task2.serialise();
+        let task1_regen = Task::deserialise(task1_serialised);
+        let task2_regen = Task::deserialise(task2_serialised);
+        assert_ne!(task1_regen, task2_regen);
     }
 
     /// Equality between two identical URLs
