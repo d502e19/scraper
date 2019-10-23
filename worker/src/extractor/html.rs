@@ -95,7 +95,7 @@ mod tests {
             </html>";
         let url = Url::parse("http://ref.ref").unwrap();
 
-        let result = extractor.extract_content(test_string.as_bytes().to_vec(), url);
+        let result = extractor.extract_content(test_string.as_bytes().to_vec(), &url);
 
         match result {
             Ok((tasks, _)) => {
@@ -119,7 +119,7 @@ mod tests {
             </html>";
         let url = Url::parse("http://ref.ref").unwrap();
 
-        let result = extractor.extract_content(test_string.as_bytes().to_vec(), url);
+        let result = extractor.extract_content(test_string.as_bytes().to_vec(), &url);
 
         match result {
             Ok((tasks, _)) => {
