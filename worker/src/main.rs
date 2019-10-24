@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     match con_result {
         Ok(mut con) => {
             let task: Task = Task { url: Url::parse("http://erdetfredag.dk/")? };
-            let task2: Task = Task { url: Url::parse("http://wikipedia.dk/")?,  };
+            let task2: Task = Task { url: Url::parse("http://wikipedia.dk/")? };
 
             // Submit tasks to Redis
             let _: () = con.sadd("submitted", &task)?;
