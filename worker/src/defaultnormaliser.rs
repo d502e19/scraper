@@ -27,6 +27,8 @@ impl DefaultNormaliser {
         //removes hash from url and changes encrypted to unencrypted.
         new_url = url_normalizer::normalize(new_url)?;
         new_url = self.scheme_and_host_to_lowercase(new_url)?;
+        new_url = self.converting_encoded_triplets_to_upper(new_url)?;
+        new_url = self.empty_path_to_slash(new_url)?;
 
         Ok(new_url)
     }
@@ -107,7 +109,7 @@ impl DefaultNormaliser {
     /// Converting an empty path to a slash. Example:
     /// From: "http://example.com"
     /// To: "http://example.com/"
-    fn empty_path_to_slash(&self, url : Url) -> Result<Url, ()> {
+    fn empty_path_to_slash(&self, url: Url) -> Result<Url, ()> {
         let new_url = url;
         let url_as_str = new_url.as_str();
 
@@ -120,9 +122,8 @@ impl DefaultNormaliser {
                 Ok(url) => Ok(url),
                 Err(e) => {
                     Err(()) //TODO Handling of Error
+                }
             }
-        }
-
         }
     }
 }
@@ -144,7 +145,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_empty_path_to_slash(){
+    fn test_empty_path_to_slash() {
         let normaliser = DefaultNormaliser;
 
         let expected_url = "http://example.com/";
@@ -152,7 +153,7 @@ mod tests {
             url: Url::parse("http://example.com").unwrap()
         };
 
-        let test_url= normaliser.empty_path_to_slash(test_task.url).unwrap();
+        let test_url = normaliser.empty_path_to_slash(test_task.url).unwrap();
 
         assert_eq!(test_url.to_string(), expected_url);
     }
@@ -166,7 +167,7 @@ mod tests {
             url: Url::parse("http://example.com/foo%2a").unwrap()
         };
 
-        let test_url= normaliser.converting_encoded_triplets_to_upper(test_task.url).unwrap();
+        let test_url = normaliser.converting_encoded_triplets_to_upper(test_task.url).unwrap();
 
         assert_eq!(test_url.to_string(), expected_url);
     }
