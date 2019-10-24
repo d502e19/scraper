@@ -38,8 +38,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         "frontier".to_string(),
         "collection".to_string(),
     )
-    .expect("Failed to construct RMQRedisManager");
-    let downloader = DefaultDownloader;
+        .expect("Failed to construct RMQRedisManager");
+    let downloader = DefaultDownloader::new();
     let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
     let archive = Void;
     let worker = Worker::new("W1".to_string(), manager, downloader, extractor, archive);
