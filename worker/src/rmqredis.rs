@@ -11,6 +11,7 @@ use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRed
 use std::str::from_utf8;
 use url::Url;
 use std::io::{Error, ErrorKind};
+use crate::errors::{ManagerResult, ManagerError, ManagerErrorKind};
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
@@ -85,7 +86,7 @@ impl RMQRedisManager {
 }
 
 impl Manager for RMQRedisManager {
-    fn submit_task(&self, task: &Task) -> Result<(), ()> {
+    fn submit_task(&self, task: &Task) -> ManagerResult<()> {
         let result = self
             .channel
             .basic_publish(
@@ -97,10 +98,7 @@ impl Manager for RMQRedisManager {
             )
             .wait();
 
-        match result {
-            Ok(_) => Ok(()),
-            Err(_) => Err(()),
-        }
+        result.map_err(|e| ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), Some(Box::new(e))))
     }
 
     fn start_listening<F>(&self, f: F)
@@ -141,12 +139,12 @@ impl Manager for RMQRedisManager {
             .unwrap();
     }
 
-    fn close(self) -> Result<(), ()> {
+    fn close(self) -> ManagerResult<()> {
         self.channel.close(0, "called close()");
         Ok(())
     }
 
-    fn contains(&self, task: &Task) -> Result<bool, ()> {
+    fn contains(&self, task: &Task) -> ManagerResult<bool> {
         let client_result =
             redis::Client::open(format!("redis://{}:{}/", self.addr, self.redis_port).as_str());
         if let Ok(client) = client_result {
@@ -157,6 +155,6 @@ impl Manager for RMQRedisManager {
                 }
             }
         }
-        Err(())
+        Err(ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), None))
     }
 }

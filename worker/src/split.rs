@@ -1,5 +1,6 @@
 use crate::traits::{Frontier, Manager, Collection, TaskProcessResult};
 use crate::Task;
+use crate::errors::ManagerResult;
 
 struct SplitManager<F: Frontier, S: Collection> {
     frontier: F,
@@ -16,7 +17,7 @@ impl<F: Frontier, S: Collection> SplitManager<F, S> {
 }
 
 impl<F: Frontier, S: Collection> Manager for SplitManager<F, S> {
-    fn submit_task(&self, task: &Task) -> Result<(), ()> {
+    fn submit_task(&self, task: &Task) -> ManagerResult<()> {
         // Can we make any atomicity guarantees?
         self.frontier.submit_task(task)?;
         self.collection.submit_task(task)
@@ -29,11 +30,11 @@ impl<F: Frontier, S: Collection> Manager for SplitManager<F, S> {
         self.frontier.start_listening(f)
     }
 
-    fn close(self) -> Result<(), ()> {
+    fn close(self) -> ManagerResult<()> {
         self.frontier.close()
     }
 
-    fn contains(&self, task: &Task) -> Result<bool, ()> {
+    fn contains(&self, task: &Task) -> ManagerResult<bool> {
         self.collection.contains(task)
     }
 }

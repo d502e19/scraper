@@ -14,6 +14,7 @@ pub enum DownloadErrorKind {
     NetworkError,        // No internet
     UnreachableError,    // No responds
     InvalidURL,          // URL is invalid
+    InvalidPage,         // Could not make sense of downloaded material
 }
 
 #[derive(Debug)]
