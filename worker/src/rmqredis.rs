@@ -117,7 +117,7 @@ impl Manager for RMQRedisManager {
 
     fn start_listening<F>(&self, f: F)
     where
-        F: Fn(&Task) -> TaskProcessResult,
+        F: Fn(Task) -> TaskProcessResult,
     {
         self.channel
             .basic_consume(

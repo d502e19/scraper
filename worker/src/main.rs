@@ -24,16 +24,10 @@ mod void;
 mod worker;
 mod archive;
 
-use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
 use crate::rmqredis::RMQRedisManager;
-use crate::task::Task;
-use crate::traits::Downloader;
 use crate::void::Void;
 use crate::worker::Worker;
-use redis::Commands;
-use std::collections::HashSet;
-use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Construct a worker and its components
