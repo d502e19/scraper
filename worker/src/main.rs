@@ -12,6 +12,7 @@ mod task;
 mod traits;
 mod void;
 mod worker;
+mod archive;
 
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
