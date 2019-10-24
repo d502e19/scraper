@@ -73,23 +73,30 @@ impl DefaultNormaliser {
     /// To: http://example.com/foo%2A
     fn converting_encoded_triplets_to_upper(&self, url: Url) -> Result<Url, ()> {
         let new_url = url;
-        let mut some_str = "".to_string();
+        let mut str_build = "".to_string();
         let some_chars = new_url.as_str().chars();
         let mut counter = 0;
 
+        // Iterating through all characters in the url
+        // and building a new string for creating a new url
         for symbol in some_chars {
-            let symbol_str = symbol.to_string();
-            if symbol_str == "%" {
+            // If the symbol "%" is read, the next two symbols
+            // will be converted to uppercase and added to the builder otherwise just
+            // add the symbol to the builder.
+            let symbol_as_str = symbol.to_string();
+            if symbol_as_str == "%" {
                 counter = 3;
             }
             if counter > 0 {
-                some_str.push_str(symbol_str.to_uppercase().as_str());
+                str_build.push_str(symbol_as_str.to_uppercase().as_str());
                 counter = counter - 1;
             } else {
-                some_str.push_str(symbol_str.as_str());
+                str_build.push_str(symbol_as_str.as_str());
             }
         }
-        match Url::parse(some_str.as_str()) {
+
+        // Parse the builded string as an url for return
+        match Url::parse(str_build.as_str()) {
             Ok(url) => Ok(url),
             Err(e) => {
                 Err(()) //TODO handling Error
