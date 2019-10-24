@@ -8,6 +8,17 @@ use url_normalizer;
 
 pub struct DefaultNormaliser;
 
+impl Normaliser for DefaultNormaliser {
+    /// Normalising the tasks URL by setting scheme and path to lowercase,
+    /// removing the dot in path, removes hash from url and ordering the query.
+    fn normalise(&self, task: Task) -> Result<Task, Box<dyn Error>> {
+        match self.full_normalisation(task.url) {
+            Ok(url) => Ok(Task { url }),
+            Err(_) => Err(Box::new(NormaliseError("Normalisation went wrong.".into()))),
+        }
+    }
+}
+
 impl DefaultNormaliser {
     fn full_normalisation(&self, url: Url) -> Result<Url, ()> {
         let mut new_url = url;
@@ -56,18 +67,37 @@ impl DefaultNormaliser {
 
         Ok(new_url)
     }
-}
 
-impl Normaliser for DefaultNormaliser {
-    /// Normalising the tasks URL by setting scheme and path to lowercase,
-    /// removing the dot in path, removes hash from url and ordering the query.
-    fn normalise(&self, task: Task) -> Result<Task, Box<dyn Error>> {
-        match self.full_normalisation(task.url) {
-            Ok(url) => Ok(Task { url }),
-            Err(_) => Err(Box::new(NormaliseError("Normalisation went wrong.".into()))),
+    /// Converting encoded triplets to uppercase, example:
+    /// From: http://example.com/foo%2a
+    /// To: http://example.com/foo%2A
+    fn converting_encoded_triplets_to_upper(&self, url: Url) -> Result<Url, ()> {
+        let new_url = url;
+        let mut some_str = "".to_string();
+        let some_chars = new_url.as_str().chars();
+        let mut counter = 0;
+
+        for symbol in some_chars {
+            let symbol_str = symbol.to_string();
+            if symbol_str == "%" {
+                counter = 3;
+            }
+            if counter > 0 {
+                some_str.push_str(symbol_str.to_uppercase().as_str());
+                counter = counter - 1;
+            } else {
+                some_str.push_str(symbol_str.as_str());
+            }
+        }
+        match Url::parse(some_str.as_str()) {
+            Ok(url) => Ok(url),
+            Err(e) => {
+                Err(()) //TODO handling Error
+            }
         }
     }
 }
+
 
 #[derive(Debug)]
 struct NormaliseError(String);
@@ -83,6 +113,20 @@ impl Error for NormaliseError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_converting_encoded_triplets_to_upper() {
+        let normaliser = DefaultNormaliser;
+
+        let expected_url = "http://example.com/foo%2A";
+        let mut test_task = Task {
+            url: Url::parse("http://example.com/foo%2a").unwrap()
+        };
+
+        let test_url= normaliser.converting_encoded_triplets_to_upper(test_task.url).unwrap();
+
+        assert_eq!(test_url.to_string(), expected_url);
+    }
 
     #[test]
     fn test_scheme_and_host_to_lowercase0() {
