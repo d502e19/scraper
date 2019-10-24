@@ -26,6 +26,9 @@ impl DefaultNormaliser {
         //Normalising by ordering the query in alphabetic order,
         //removes hash from url and changes encrypted to unencrypted.
         new_url = url_normalizer::normalize(new_url)?;
+        /*
+        new_url = self.removing_dots_in_path(new_url)?; //When creating an url it removes dots by default
+        */
         new_url = self.scheme_and_host_to_lowercase(new_url)?;
         new_url = self.converting_encoded_triplets_to_upper(new_url)?;
         new_url = self.empty_path_to_slash(new_url)?;
@@ -57,8 +60,7 @@ impl DefaultNormaliser {
 
 
     ///Removing the "../" and "./" notations from the path
-    // Since the parsing when creating a Url is removing the "./" and
-    // "../" notation this method is obsolete and not included in full_normalisation()
+    #[allow(dead_code)]
     fn removing_dots_in_path(&self, url: Url) -> Result<Url, ()> {
         let mut new_url = url;
 
