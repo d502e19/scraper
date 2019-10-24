@@ -69,8 +69,8 @@ impl DefaultNormaliser {
     }
 
     /// Converting encoded triplets to uppercase, example:
-    /// From: http://example.com/foo%2a
-    /// To: http://example.com/foo%2A
+    /// From: "http://example.com/foo%2a"
+    /// To: "http://example.com/foo%2A"
     fn converting_encoded_triplets_to_upper(&self, url: Url) -> Result<Url, ()> {
         let new_url = url;
         let mut str_build = "".to_string();
@@ -103,6 +103,28 @@ impl DefaultNormaliser {
             }
         }
     }
+
+    /// Converting an empty path to a slash. Example:
+    /// From: "http://example.com"
+    /// To: "http://example.com/"
+    fn empty_path_to_slash(&self, url : Url) -> Result<Url, ()> {
+        let new_url = url;
+        let url_as_str = new_url.as_str();
+
+        if url_as_str.ends_with("/") || !new_url.path().is_empty() {
+            Ok(new_url)
+        } else {
+            url_as_str.to_string().push_str("/");
+
+            match Url::parse(url_as_str) {
+                Ok(url) => Ok(url),
+                Err(e) => {
+                    Err(()) //TODO Handling of Error
+            }
+        }
+
+        }
+    }
 }
 
 
@@ -120,6 +142,20 @@ impl Error for NormaliseError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_empty_path_to_slash(){
+        let normaliser = DefaultNormaliser;
+
+        let expected_url = "http://example.com/";
+        let mut test_task = Task {
+            url: Url::parse("http://example.com").unwrap()
+        };
+
+        let test_url= normaliser.empty_path_to_slash(test_task.url).unwrap();
+
+        assert_eq!(test_url.to_string(), expected_url);
+    }
 
     #[test]
     fn test_converting_encoded_triplets_to_upper() {
