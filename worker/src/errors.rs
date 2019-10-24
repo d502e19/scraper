@@ -46,6 +46,12 @@ pub type DownloadError = ScraperError<DownloadErrorKind>;
 pub type ExtractError = ScraperError<ExtractErrorKind>;
 pub type ArchiveError = ScraperError<ArchiveErrorKind>;
 
+// std Results with web scraper errors
+pub type ManagerResult<T> = std::result::Result<T, ManagerError>;
+pub type DownloadResult<T> = std::result::Result<T, DownloadError>;
+pub type ExtractResult<T> = std::result::Result<T, ExtractError>;
+pub type ArchiveResult<T> = std::result::Result<T, ArchiveError>;
+
 // Allows our errors to have source errors or causes like rust's builtin errors.
 // The source error is a field in the struct and is optional.
 impl<K> Error for ScraperError<K>
@@ -56,6 +62,51 @@ where
         self.source.as_ref().map(|err| err.deref())
     }
 }
+
+impl ManagerError {
+    /// Create a new ManagerError with a kind, message, and optional source error.
+    pub fn new(kind: ManagerErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+        ManagerError {
+            kind,
+            msg,
+            source,
+        }
+    }
+}
+
+impl DownloadError {
+    /// Create a new DownloadError with a kind, message, and optional source error.
+    pub fn new(kind: DownloadErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+        DownloadError {
+            kind,
+            msg,
+            source,
+        }
+    }
+}
+
+impl ExtractError {
+    /// Create a new ExtractError with a kind, message, and optional source error.
+    pub fn new(kind: ExtractErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+        ExtractError {
+            kind,
+            msg,
+            source,
+        }
+    }
+}
+
+impl ArchiveError {
+    /// Create a new ArchiveError with a kind, message, and optional source error.
+    pub fn new(kind: ArchiveErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+        ArchiveError {
+            kind,
+            msg,
+            source,
+        }
+    }
+}
+
 
 // Allows our errors to be displayed
 impl<K> Display for ScraperError<K>
