@@ -40,27 +40,38 @@ impl Downloader<Vec<u8>> for DefaultDownloader {
 
 #[cfg(test)]
 mod tests {
+    use std::io::{Read, Write};
+    use std::net::TcpStream;
+
     use mockito::mock;
     use url::Url;
 
     use crate::downloader::DefaultDownloader;
     use crate::task::Task;
     use crate::traits::Downloader;
-    use std::net::TcpStream;
-    use std::io::{Read, Write};
 
     #[test]
     fn test_downloader1() {
         let url = mockito::server_url();
 
-        let body = "world";
-        let mut mock = mock("GET", "/");
-        mock.with_body(&body.to_string()).create();
+        let body = "<!DOCTYPE html>
+                            <html>
+                            <body>
+
+                            <h1>My first test</h1>
+                            <p>This is our first test using mocking (mockito)</p>
+
+                            </body>
+                            </html>";
+
+        let _m = mock("GET", "/")
+            .with_status(200)
+            .with_header("content-type", "text/plain")
+            .with_body(&body)
+            .create();
 
         let dl: DefaultDownloader = DefaultDownloader;
         let data = dl.fetch_page(Task { url: Url::parse(&url).unwrap() });
-        //println!("{:?}", data);
-        //println!("{:?}", String::from_utf8(data.unwrap()));
 
         let mut expected: Vec<u8> = Vec::new();
         expected = body.as_bytes().to_vec();
