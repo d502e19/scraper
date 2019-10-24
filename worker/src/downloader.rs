@@ -52,10 +52,10 @@ mod tests {
 
     #[test]
     fn test_downloader1() {
-        //url points to a local url to the server
+        // Url points to a local url to the server
         let url = mockito::server_url();
 
-        //string which is to be the body of the server
+        // String which is to be the body of the server
         let body = "<!DOCTYPE html>
                             <html>
                             <body>
@@ -66,22 +66,22 @@ mod tests {
                             </body>
                             </html>";
 
-        //creates expected value for test, which is the body in Vec<u8>
+        // Creates expected value for test, which is the body in Vec<u8>
         let expected: Vec<u8> = body.as_bytes().to_vec();
 
-        //creates the mock
+        // Creates the mock
         let _m = mock("GET", "/")
             .with_status(200)
             .with_header("content-type", "text/plain")
             .with_body(&body)
             .create();
 
-        //attempts to access the mock and downloads the body
+        // Attempts to access the mock and downloads the body
         let dl: DefaultDownloader = DefaultDownloader::new();
         let data = dl.fetch_page(
             &Task { url: Url::parse(&url).unwrap() });
 
-        //asserts the downloaded data, and expected value is the same
+        // Asserts the downloaded data, and expected value is the same
         assert_eq!(data.unwrap(), expected);
     }
 }
