@@ -40,9 +40,6 @@ impl Downloader<Vec<u8>> for DefaultDownloader {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Read, Write};
-    use std::net::TcpStream;
-
     use mockito::mock;
     use url::Url;
 
@@ -71,7 +68,8 @@ mod tests {
             .create();
 
         let dl: DefaultDownloader = DefaultDownloader;
-        let data = dl.fetch_page(Task { url: Url::parse(&url).unwrap() });
+        let data = dl.fetch_page(
+            Task { url: Url::parse(&url).unwrap() });
 
         let mut expected: Vec<u8> = Vec::new();
         expected = body.as_bytes().to_vec();
