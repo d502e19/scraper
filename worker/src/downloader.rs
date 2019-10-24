@@ -22,7 +22,7 @@ impl DefaultDownloader {
 impl Downloader<Vec<u8>> for DefaultDownloader {
     /// Takes a task and returns either a vec<u8> with contents of the url in task, or an error.
     /// If function is successful it will return a Vec<u8> with the page contents, otherwise Error
-    fn fetch_page(&self, task: Task) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn fetch_page(&self, task: &Task) -> Result<Vec<u8>, Box<dyn Error>> {
         // Attempts to get html from url using the client
         match self.client.get(task.url.as_str()).send() {
             Ok(mut res) => {
@@ -79,7 +79,7 @@ mod tests {
         //attempts to access the mock and downloads the body
         let dl: DefaultDownloader = DefaultDownloader::new();
         let data = dl.fetch_page(
-            Task { url: Url::parse(&url).unwrap() });
+            &Task { url: Url::parse(&url).unwrap() });
 
         //asserts the downloaded data, and expected value is the same
         assert_eq!(data.unwrap(), expected);
