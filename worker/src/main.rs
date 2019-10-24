@@ -20,6 +20,7 @@ mod task;
 mod traits;
 mod downloader;
 mod void;
+mod archive;
 mod extractor;
 
 fn main() -> Result<(), Box<dyn Error>> {
