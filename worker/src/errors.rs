@@ -52,6 +52,7 @@ pub type DownloadResult<T> = std::result::Result<T, DownloadError>;
 pub type ExtractResult<T> = std::result::Result<T, ExtractError>;
 pub type ArchiveResult<T> = std::result::Result<T, ArchiveError>;
 
+
 // Allows our errors to have source errors or causes like rust's builtin errors.
 // The source error is a field in the struct and is optional.
 impl<K> Error for ScraperError<K>
@@ -62,6 +63,7 @@ where
         self.source.as_ref().map(|err| err.deref())
     }
 }
+
 
 impl ManagerError {
     /// Create a new ManagerError with a kind, message, and optional source error.
@@ -161,11 +163,11 @@ mod tests {
     /// Testing formatting of ManagerError without source error
     #[test]
     fn display_manager_error_no_source() {
-        let error = ManagerError {
-            kind: ManagerErrorKind::NetworkError,
-            msg: String::from("Some message"),
-            source: None,
-        };
+        let error = ManagerError::new(
+            ManagerErrorKind::NetworkError,
+            String::from("Some message"),
+            None,
+        );
         let expected_str = "NetworkError: Some message";
         assert_eq!(format!("{}", error), expected_str);
     }
@@ -173,11 +175,11 @@ mod tests {
     /// Testing formatting of DownloadError without source error
     #[test]
     fn display_download_error_no_source() {
-        let error = DownloadError {
-            kind: DownloadErrorKind::InvalidURL,
-            msg: String::from("URL was an empty string"),
-            source: None,
-        };
+        let error = DownloadError::new(
+            DownloadErrorKind::InvalidURL,
+            String::from("URL was an empty string"),
+            None,
+        );
         let expected_str = "InvalidURL: URL was an empty string";
         assert_eq!(format!("{}", error), expected_str);
     }
@@ -185,11 +187,11 @@ mod tests {
     /// Testing formatting of ExtractError with source error
     #[test]
     fn display_extract_error_with_source() {
-        let error = ExtractError {
-            kind: ExtractErrorKind::ParsingError,
-            msg: String::from("Could not parse data"),
-            source: Some(Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, "Data was not found"))),
-        };
+        let error = ExtractError::new(
+            ExtractErrorKind::ParsingError,
+            String::from("Could not parse data"),
+            Some(Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, "Data was not found"))),
+        );
         let expected_str = "ParsingError: Could not parse data (source: Data was not found)";
         assert_eq!(format!("{}", error), expected_str);
     }
@@ -197,15 +199,15 @@ mod tests {
     /// Testing formatting of ArchiveError with source error
     #[test]
     fn display_archive_error_with_source() {
-        let error = ArchiveError {
-            kind: ArchiveErrorKind::ServerError,
-            msg: String::from("Server tried to download something and failed"),
-            source: Some(Box::new(DownloadError {
-                kind: DownloadErrorKind::NetworkError,
-                msg: String::from("Trying to test nested errors"),
-                source: None,
-            })),
-        };
+        let error = ArchiveError::new(
+            ArchiveErrorKind::ServerError,
+            String::from("Server tried to download something and failed"),
+            Some(Box::new(DownloadError::new(
+                DownloadErrorKind::NetworkError,
+                String::from("Trying to test nested errors"),
+                None,
+            ))),
+        );
         let expected_str = "ServerError: Server tried to download something and failed (source: NetworkError: Trying to test nested errors)";
         assert_eq!(format!("{}", error), expected_str);
     }
