@@ -14,6 +14,7 @@ use crate::downloader::DefaultDownloader;
 use crate::task::Task;
 use crate::traits::Downloader;
 
+mod errors;
 mod rmqredis;
 mod split;
 mod task;
