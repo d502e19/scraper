@@ -23,7 +23,6 @@ impl Downloader<Vec<u8>> for DefaultDownloader {
     /// Takes a task and returns either a vec<u8> with contents of the url in task, or an error.
     /// If function is successful it will return a Vec<u8> with the page contents, otherwise Error
     fn fetch_page(&self, task: Task) -> Result<Vec<u8>, Box<dyn Error>> {
-
         // Attempts to get html from url using the client
         match self.client.get(task.url.as_str()).send() {
             Ok(mut res) => {
@@ -31,18 +30,12 @@ impl Downloader<Vec<u8>> for DefaultDownloader {
                 let mut body: Vec<u8> = Vec::new();
                 match res.read_to_end(&mut body) {
                     // If successful return the vec with bytes
-                    Ok(_) => {
-                        Ok(body)
-                    }
+                    Ok(_) => Ok(body),
                     // Otherwise error
-                    Err(e) => {
-                        Err(Box::new(e))
-                    }
+                    Err(e) => Err(Box::new(e)),
                 }
             }
-            Err(e) => {
-                Err(Box::new(e))
-            }
+            Err(e) => Err(Box::new(e)),
         }
     }
 }
