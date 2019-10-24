@@ -41,7 +41,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             let found: bool = con.sismember("submitted", &task)?;
             println!("{} is in set: {}", task.url, found);
 
-
             let dl: DefaultDownloader = DefaultDownloader;
             let data = dl.fetch_page(task);
             println!("{:?}", String::from_utf8(data.unwrap()))
