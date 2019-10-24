@@ -7,7 +7,7 @@ pub trait Manager {
 
     fn start_listening<F>(&self, f: F)
     where
-        F: Fn(&Task) -> TaskProcessResult;
+        F: Fn(Task) -> TaskProcessResult;
 
     fn close(self) -> ManagerResult<()>;
 
@@ -19,7 +19,7 @@ pub trait Frontier {
 
     fn start_listening<F>(&self, f: F)
     where
-        F: Fn(&Task) -> TaskProcessResult;
+        F: Fn(Task) -> TaskProcessResult;
 
     fn close(self) -> ManagerResult<()>;
 }
@@ -37,11 +37,11 @@ pub trait Collection {
 }
 
 pub trait Downloader<S> {
-    fn fetch_page(&self, task: Task) -> DownloadResult<S>;
+    fn fetch_page(&self, task: &Task) -> DownloadResult<S>;
 }
 
 pub trait Extractor<S, D> {
-    fn extract_content(&self, page: S, url: Url) -> ExtractResult<(Vec<Task>, Vec<D>)>;
+    fn extract_content(&self, page: S, url: &Url) -> ExtractResult<(Vec<Task>, Vec<D>)>;
 }
 
 pub trait Archive<D> {
