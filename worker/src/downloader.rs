@@ -2,20 +2,29 @@ use std::error::Error;
 use std::io::Read;
 
 use reqwest;
+use reqwest::Client;
 
 use crate::task::Task;
 use crate::traits::Downloader;
 
 /// An empty struct to access functions in downloader file
-pub(crate) struct DefaultDownloader;
+pub(crate) struct DefaultDownloader {
+    client: reqwest::Client
+}
 
+impl DefaultDownloader {
+    pub fn new() -> Self {
+        DefaultDownloader { client: Client::new() }
+    }
+}
 
 impl Downloader<Vec<u8>> for DefaultDownloader {
+    /// Takes a task and returns either a vec<u8> with contents of the url in task, or an error
     /// If function is successful it will return a Vec<u8> with the page contents, otherwise Error
     fn fetch_page(&self, task: Task) -> Result<Vec<u8>, Box<dyn Error>> {
 
         // Attempts to get html from url
-        match reqwest::get(task.url.as_str()) {
+        match self.client.get(task.url.as_str()).send() {
             Ok(mut res) => {
                 // Read html as bytes into vec
                 let mut body: Vec<u8> = Vec::new();
@@ -67,7 +76,7 @@ mod tests {
             .with_body(&body)
             .create();
 
-        let dl: DefaultDownloader = DefaultDownloader;
+        let dl: DefaultDownloader = DefaultDownloader::new();
         let data = dl.fetch_page(
             Task { url: Url::parse(&url).unwrap() });
 
