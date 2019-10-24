@@ -1,8 +1,10 @@
-use lapin_futures::{Channel, BasicProperties};
-use lapin_futures::options::BasicPublishOptions;
-use crate::traits::Archive;
 use std::error::Error;
+
 use futures::Future;
+use lapin_futures::{BasicProperties, Channel};
+use lapin_futures::options::BasicPublishOptions;
+
+use crate::traits::Archive;
 
 pub struct RabbitMQArchive {
     channel: Channel,

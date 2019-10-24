@@ -24,7 +24,7 @@ impl<F: Frontier, S: Collection> Manager for SplitManager<F, S> {
 
     fn start_listening<G>(&self, f: G)
     where
-        G: Fn(&Task) -> TaskProcessResult,
+        G: Fn(Task) -> TaskProcessResult,
     {
         self.frontier.start_listening(f)
     }
