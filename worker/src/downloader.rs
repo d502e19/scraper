@@ -71,8 +71,7 @@ mod tests {
         let data = dl.fetch_page(
             Task { url: Url::parse(&url).unwrap() });
 
-        let mut expected: Vec<u8> = Vec::new();
-        expected = body.as_bytes().to_vec();
+        let expected: Vec<u8> = body.as_bytes().to_vec();
 
         assert_eq!(data.unwrap(), expected);
     }
