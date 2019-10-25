@@ -9,7 +9,7 @@ pub trait Manager {
     fn submit_task(&self, task: &Task) -> ManagerResult<()>;
 
     fn start_listening<F>(&self, f: F)
-    where
+        where
         F: Fn(Task) -> TaskProcessResult;
 
     fn close(self) -> ManagerResult<()>;
@@ -21,7 +21,7 @@ pub trait Frontier {
     fn submit_task(&self, task: &Task) -> ManagerResult<()>;
 
     fn start_listening<F>(&self, f: F)
-    where
+        where
         F: Fn(Task) -> TaskProcessResult;
 
     fn close(self) -> ManagerResult<()>;
@@ -49,4 +49,8 @@ pub trait Extractor<S, D> {
 
 pub trait Archive<D> {
     fn archive_content(&self, content: D) -> ArchiveResult<()>;
+}
+
+pub trait Normaliser {
+    fn normalise(&self, task: Task) -> Result<Task, Box<dyn Error>>;
 }
