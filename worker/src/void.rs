@@ -1,5 +1,5 @@
-use crate::traits::Archive;
 use crate::errors::ArchiveResult;
+use crate::traits::Archive;
 
 ///Functions as an Archive but is doing nothing with the content.
 pub struct Void;

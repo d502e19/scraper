@@ -1,9 +1,11 @@
+use std::marker::PhantomData;
+
+use scraper::{Html, Selector};
+use url::Url;
+
+use crate::errors::{ExtractError, ExtractErrorKind, ExtractResult};
 use crate::task::Task;
 use crate::traits::Extractor;
-use scraper::{Html, Selector};
-use std::marker::PhantomData;
-use url::Url;
-use crate::errors::{ExtractResult, ExtractError, ExtractErrorKind};
 
 pub struct HTMLExtractorBase<D, H: HTMLExtractor<D>> {
     _marker: PhantomData<D>,

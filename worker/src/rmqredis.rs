@@ -1,18 +1,20 @@
-use crate::task::Task;
-use crate::traits::{Manager, TaskProcessResult};
+use std::io::{Error, ErrorKind};
+use std::str::from_utf8;
+
 use futures::future::Future;
 use futures::stream::Stream;
+use lapin_futures::{BasicProperties, Channel, Client, ConnectionProperties, ExchangeKind, Queue};
 use lapin_futures::options::{
     BasicConsumeOptions, BasicPublishOptions, BasicRejectOptions, ExchangeDeclareOptions,
     QueueBindOptions, QueueDeclareOptions,
 };
 use lapin_futures::types::FieldTable;
-use lapin_futures::{BasicProperties, Channel, Client, ConnectionProperties, ExchangeKind, Queue};
 use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRedisArgs, Value};
-use std::str::from_utf8;
 use url::Url;
-use std::io::{Error, ErrorKind};
-use crate::errors::{ManagerResult, ManagerError, ManagerErrorKind};
+
+use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
+use crate::task::Task;
+use crate::traits::{Manager, TaskProcessResult};
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {

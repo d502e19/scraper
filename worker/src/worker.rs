@@ -1,5 +1,6 @@
-use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult};
 use std::marker::PhantomData;
+
+use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult};
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.

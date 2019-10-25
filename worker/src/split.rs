@@ -1,6 +1,6 @@
-use crate::traits::{Collection, Frontier, Manager, TaskProcessResult};
-use crate::Task;
 use crate::errors::ManagerResult;
+use crate::Task;
+use crate::traits::{Collection, Frontier, Manager, TaskProcessResult};
 
 struct SplitManager<F: Frontier, S: Collection> {
     frontier: F,

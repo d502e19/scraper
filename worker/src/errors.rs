@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fmt::{Display, Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 
 #[derive(Debug)]
@@ -158,8 +158,9 @@ impl Display for ArchiveErrorKind {
 
 #[cfg(test)]
 mod tests {
-    use crate::errors::{ManagerError, ManagerErrorKind, DownloadError, DownloadErrorKind, ExtractErrorKind, ExtractError, ArchiveError, ArchiveErrorKind};
     use std::fmt::Display;
+
+    use crate::errors::{ArchiveError, ArchiveErrorKind, DownloadError, DownloadErrorKind, ExtractError, ExtractErrorKind, ManagerError, ManagerErrorKind};
 
     /// Testing formatting of ManagerError without source error
     #[test]

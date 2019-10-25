@@ -1,6 +1,9 @@
-use crate::task::Task;
+use std::error::Error;
+
 use url::Url;
-use crate::errors::{ManagerResult, DownloadResult, ExtractResult, ArchiveResult};
+
+use crate::errors::{ArchiveResult, DownloadResult, ExtractResult, ManagerResult};
+use crate::task::Task;
 
 pub trait Manager {
     fn submit_task(&self, task: &Task) -> ManagerResult<()>;
