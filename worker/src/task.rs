@@ -26,8 +26,9 @@ impl PartialEq for Task {
 
 #[cfg(test)]
 mod tests {
-    use crate::task;
     use url::Url;
+
+    use crate::task;
     use crate::task::Task;
 
     /// Test if serialisation and deserialisation does not change the Task
