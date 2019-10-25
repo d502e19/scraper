@@ -19,6 +19,7 @@ use crate::worker::Worker;
 
 mod downloader;
 mod extractor;
+mod errors;
 mod rmqredis;
 mod split;
 mod task;

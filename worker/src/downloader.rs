@@ -4,6 +4,7 @@ use std::io::Read;
 use reqwest;
 use reqwest::Client;
 
+use crate::errors::{DownloadError, DownloadErrorKind, DownloadResult};
 use crate::task::Task;
 use crate::traits::Downloader;
 
@@ -22,7 +23,7 @@ impl DefaultDownloader {
 impl Downloader<Vec<u8>> for DefaultDownloader {
     /// Takes a task and returns either a vec<u8> with contents of the url in task, or an error.
     /// If function is successful it will return a Vec<u8> with the page contents, otherwise Error
-    fn fetch_page(&self, task: &Task) -> Result<Vec<u8>, Box<dyn Error>> {
+    fn fetch_page(&self, task: &Task) -> DownloadResult<Vec<u8>> {
         // Attempts to get html from url using the client
         match self.client.get(task.url.as_str()).send() {
             Ok(mut res) => {
@@ -32,10 +33,10 @@ impl Downloader<Vec<u8>> for DefaultDownloader {
                     // If successful return the vec with bytes
                     Ok(_) => Ok(body),
                     // Otherwise error
-                    Err(e) => Err(Box::new(e)),
+                    Err(e) => Err(DownloadError::new(DownloadErrorKind::InvalidPage, String::from("Could not read downloaded page"), Some(Box::new(e)))),
                 }
             }
-            Err(e) => Err(Box::new(e)),
+            Err(e) => Err(DownloadError::new(DownloadErrorKind::NetworkError, String::from("Failed to download page"), Some(Box::new(e)))),
         }
     }
 }
