@@ -26,6 +26,7 @@ mod traits;
 mod void;
 mod worker;
 mod archive;
+mod defaultnormaliser;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Construct a worker and its components
