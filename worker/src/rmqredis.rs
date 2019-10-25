@@ -12,14 +12,15 @@ use lapin_futures::types::FieldTable;
 use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRedisArgs, Value};
 use url::Url;
 
+use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
 use crate::task::Task;
 use crate::traits::{Manager, TaskProcessResult};
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
     fn write_redis_args<W>(&self, out: &mut W)
-        where
-            W: ?Sized + RedisWrite,
+    where
+        W: ?Sized + RedisWrite,
     {
         out.write_arg(self.url.as_str().as_bytes())
     }
@@ -101,7 +102,7 @@ impl RMQRedisManager {
 }
 
 impl Manager for RMQRedisManager {
-    fn submit_task(&self, task: &Task) -> Result<(), ()> {
+    fn submit_task(&self, task: &Task) -> ManagerResult<()> {
         let result = self
             .channel
             .basic_publish(
@@ -113,15 +114,12 @@ impl Manager for RMQRedisManager {
             )
             .wait();
 
-        match result {
-            Ok(_) => Ok(()),
-            Err(_) => Err(()),
-        }
+        result.map_err(|e| ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), Some(Box::new(e))))
     }
 
     fn start_listening<F>(&self, f: F)
-        where
-            F: Fn(Task) -> TaskProcessResult,
+    where
+        F: Fn(Task) -> TaskProcessResult,
     {
         self.channel
             .basic_consume(
@@ -151,12 +149,12 @@ impl Manager for RMQRedisManager {
             .unwrap();
     }
 
-    fn close(self) -> Result<(), ()> {
+    fn close(self) -> ManagerResult<()> {
         self.channel.close(0, "called close()");
         Ok(())
     }
 
-    fn contains(&self, task: &Task) -> Result<bool, ()> {
+    fn contains(&self, task: &Task) -> ManagerResult<bool> {
         let client_result =
             redis::Client::open(format!("redis://{}:{}/", self.addr, self.redis_port).as_str());
         if let Ok(client) = client_result {
@@ -167,6 +165,6 @@ impl Manager for RMQRedisManager {
                 }
             }
         }
-        Err(())
+        Err(ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), None))
     }
 }
