@@ -8,8 +8,9 @@ extern crate tokio;
 use std::collections::HashSet;
 use std::error::Error;
 
-use clap::{App, Arg};
 use redis::Commands;
+
+use clap::{App, Arg};
 
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
@@ -27,6 +28,8 @@ mod task;
 mod traits;
 mod void;
 mod worker;
+mod archive;
+mod defaultnormaliser;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = App::new("DatScraper")
@@ -82,9 +85,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .help("Specify the manager's address")
     ).get_matches();
     // Construct a worker and its components
-    println!("{:?}", args.default_val)
     let manager = RMQRedisManager::new(
-        args.value_of("manager-address").unwrap_or("localhost").to_string(),
+        args.value_of("manager-address").unwrap_or("192.168.99.100").to_string(),
         args.value_of("rabbitmq-port").unwrap_or("5672").parse().unwrap(),
         args.value_of("redis-port").unwrap_or("6379").parse().unwrap(),
         args.value_of("rabbitmq-exchange").unwrap_or("work").to_string(),
@@ -92,7 +94,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "frontier".to_string(),
         "collection".to_string(),
     ).expect("Failed to construct RMQRedisManager");
-    let downloader = DefaultDownloader;
+    let downloader = DefaultDownloader::new();
     let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
     let archive = Void;
     let worker = Worker::new("W1".to_string(), manager, downloader, extractor, archive);
