@@ -1,7 +1,7 @@
 [package]
 name = "redis-proxy"
 version = "0.1.0"
-authors = ["D502e19 <d502e19@cs.aau.dk>",
+authors = ["d502e19 <d502e19@cs.aau.dk>",
     "Esben Jensen <ebje17@student.aau.dk>",
     "Falke Carlsen <falke.cs@gmail.com",
     "Jacob Jenner Rasmussen <jacob@jener.dk>",
