@@ -30,7 +30,6 @@ mod defaultnormaliser;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Set up arguments and get resulting arguments
-    //adsf adsf
     let args = App::new("DatScraper")
         .version("0.1.0")
         .author("d502e19@aau")
