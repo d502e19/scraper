@@ -60,6 +60,13 @@ impl RMQRedisManager {
         queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
+        println!("{:?}", addr);
+        println!("{:?}", rmq_port);
+        println!("{:?}", redis_port);
+        println!("{:?}", exchange);
+        println!("{:?}", routing_key);
+        println!("{:?}", queue_name);
+        println!("{:?}", redis_set);
         let client = Client::connect(
             format!("amqp://{}:{}/%2f", addr, rmq_port).as_str(),
             ConnectionProperties::default(),
