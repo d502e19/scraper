@@ -44,7 +44,7 @@ pub trait Downloader<S> {
 }
 
 pub trait Extractor<S, D> {
-    fn extract_content(&self, page: S, url: &Url) -> ExtractResult<(Vec<Task>, Vec<D>)>;
+    fn extract_content(&self, page: S, url: &Url) -> ExtractResult<(Vec<Url>, Vec<D>)>;
 }
 
 pub trait Archive<D> {
@@ -52,5 +52,5 @@ pub trait Archive<D> {
 }
 
 pub trait Normaliser {
-    fn normalise(&self, task: Task) -> Result<Task, Box<dyn Error>>;
+    fn normalise(&self, url: Url) -> Result<Url, Box<dyn Error>>;
 }

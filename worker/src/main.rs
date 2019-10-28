@@ -16,6 +16,7 @@ use crate::task::Task;
 use crate::traits::Downloader;
 use crate::void::Void;
 use crate::worker::Worker;
+use crate::defaultnormaliser::DefaultNormaliser;
 
 mod downloader;
 mod extractor;
@@ -43,8 +44,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .expect("Failed to construct RMQRedisManager");
     let downloader = DefaultDownloader::new();
     let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
+    let normaliser = DefaultNormaliser;
     let archive = Void;
-    let worker = Worker::new("W1".to_string(), manager, downloader, extractor, archive);
+    let worker = Worker::new("W1".to_string(), manager, downloader, extractor, normaliser, archive);
     worker.start();
 
     Ok(())
