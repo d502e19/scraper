@@ -1,35 +1,42 @@
-use crate::traits::Extractor;
-use crate::task::Task;
-use std::error::Error;
-use scraper::{Html, Selector};
 use std::marker::PhantomData;
+
+use scraper::{Html, Selector};
 use url::Url;
 
-struct HTMLExtractorBase<D, H: HTMLExtractor<D>> {
+use crate::errors::{ExtractError, ExtractErrorKind, ExtractResult};
+use crate::task::Task;
+use crate::traits::Extractor;
+
+pub struct HTMLExtractorBase<D, H: HTMLExtractor<D>> {
     _marker: PhantomData<D>,
     html_extractor: H,
 }
 
-impl <D, H>Extractor<Vec<u8>, D> for HTMLExtractorBase<D, H> where H: HTMLExtractor<D> {
-    fn extract_content(&self, content: Vec<u8>, url: Url) -> Result<(Vec<Task>, Vec<D>), Box<dyn Error>> {
-        let html = String::from_utf8(content)?;
+impl<D, H> Extractor<Vec<u8>, D> for HTMLExtractorBase<D, H>
+where
+    H: HTMLExtractor<D>,
+{
+    fn extract_content(&self, content: Vec<u8>, url: &Url) -> ExtractResult<(Vec<Task>, Vec<D>)> {
+        let html = String::from_utf8(content).map_err(|e| {
+            ExtractError::new(ExtractErrorKind::ParsingError, String::from("Failed to parse html"), Some(Box::new(e)))
+        })?;
         let document = Html::parse_document(html.as_str());
 
         self.html_extractor.extract_from_html(document, url)
     }
 }
 
-impl <D, H: HTMLExtractor<D>>HTMLExtractorBase<D, H> {
-    fn new(html_extractor: H) -> HTMLExtractorBase<D, H> {
+impl<D, H: HTMLExtractor<D>> HTMLExtractorBase<D, H> {
+    pub fn new(html_extractor: H) -> HTMLExtractorBase<D, H> {
         HTMLExtractorBase {
             _marker: PhantomData,
-            html_extractor
+            html_extractor,
         }
     }
 }
 
 pub trait HTMLExtractor<D> {
-    fn extract_from_html(&self, content: Html, url: Url) -> Result<(Vec<Task>, Vec<D>), Box<dyn Error>>;
+    fn extract_from_html(&self, content: Html, url: &Url) -> ExtractResult<(Vec<Task>, Vec<D>)>;
 }
 
 pub struct HTMLLinkExtractor {
@@ -37,33 +44,32 @@ pub struct HTMLLinkExtractor {
 }
 
 impl HTMLLinkExtractor {
-    fn new() -> HTMLLinkExtractor {
+    pub fn new() -> HTMLLinkExtractor {
         HTMLLinkExtractor {
-            link_selector: Selector::parse("a").expect("anchor tag selector")
+            link_selector: Selector::parse("a").expect("anchor tag selector"),
         }
     }
 }
 
 impl HTMLExtractor<()> for HTMLLinkExtractor {
-    fn extract_from_html(&self, content: Html, reference_url: Url) -> Result<(Vec<Task>, Vec<()>), Box<dyn Error>> {
-        let tasks: Vec<Task> = content.select(&self.link_selector)
-            .filter_map(|element| {
-                element.value().attr("href")
-            })
+    fn extract_from_html(
+        &self,
+        content: Html,
+        reference_url: &Url,
+    ) -> ExtractResult<(Vec<Task>, Vec<()>)> {
+        let tasks: Vec<Task> = content
+            .select(&self.link_selector)
+            .filter_map(|element| element.value().attr("href"))
             .filter_map(|url| {
                 Url::options()
                     .base_url(Some(&reference_url))
                     .parse(url)
                     .ok()
             })
-            .map(|url| {
-                Task {
-                    url
-                }
-            })
+            .map(|url| Task { url })
             .collect();
 
-        Ok((tasks, vec!()))
+        Ok((tasks, vec![]))
     }
 }
 
@@ -85,13 +91,13 @@ mod tests {
             </html>";
         let url = Url::parse("http://ref.ref").unwrap();
 
-        let result = extractor.extract_content(test_string.as_bytes().to_vec(), url);
+        let result = extractor.extract_content(test_string.as_bytes().to_vec(), &url);
 
         match result {
             Ok((tasks, _)) => {
                 assert_eq!(tasks.len(), 1);
                 assert_eq!(tasks[0].url.as_str(), "http://example.com/");
-            },
+            }
             Err(_) => panic!(),
         }
     }
@@ -109,13 +115,13 @@ mod tests {
             </html>";
         let url = Url::parse("http://ref.ref").unwrap();
 
-        let result = extractor.extract_content(test_string.as_bytes().to_vec(), url);
+        let result = extractor.extract_content(test_string.as_bytes().to_vec(), &url);
 
         match result {
             Ok((tasks, _)) => {
                 assert_eq!(tasks.len(), 1);
                 assert_eq!(tasks[0].url.as_str(), "http://ref.ref/test");
-            },
+            }
             Err(_) => panic!(),
         }
     }

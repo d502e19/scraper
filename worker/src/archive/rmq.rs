@@ -1,8 +1,11 @@
-use lapin_futures::{Channel, BasicProperties};
-use lapin_futures::options::BasicPublishOptions;
-use crate::traits::Archive;
 use std::error::Error;
+
 use futures::Future;
+use lapin_futures::{BasicProperties, Channel};
+use lapin_futures::options::BasicPublishOptions;
+
+use crate::errors::{ArchiveError, ArchiveErrorKind, ArchiveResult};
+use crate::traits::Archive;
 
 pub struct RabbitMQArchive {
     channel: Channel,
@@ -22,7 +25,7 @@ impl RabbitMQArchive {
 
 impl<D> Archive<D> for RabbitMQArchive
     where D: Into<Vec<u8>> {
-    fn archive_content(&self, content: D) -> Result<(), Box<dyn Error>> {
+    fn archive_content(&self, content: D) -> ArchiveResult<()> {
         let bytes = content.into();
         let res = self.channel.basic_publish(
             self.exchange.as_str(),
@@ -32,9 +35,6 @@ impl<D> Archive<D> for RabbitMQArchive
             BasicProperties::default(),
         ).wait();
 
-        match res {
-            Ok(_) => Ok(()),
-            Err(e) => Err(Box::new(e)),
-        }
+        res.map_err(|e| ArchiveError::new(ArchiveErrorKind::UnreachableError, String::from("Could not archive to RabbitMQ"), Some(Box::new(e))))
     }
 }
