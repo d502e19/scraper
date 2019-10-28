@@ -14,6 +14,13 @@ impl WhitelistFromFile {
 
 impl WhitelistFromFile{
     fn ReadFromWhitelistFile() -> Vec<u8> {
+        let contents = fs::read_to_string(whitelist).expect("Could not read from whitelist file");
+        println!("contents from whitelist\n{}", contents)
+    }
+}
 
+impl Filter<Vec<u8>> for Whitelist {
+    fn filter(&self, task: &Task) -> bool{
+        //TODO implement trait
     }
 }
