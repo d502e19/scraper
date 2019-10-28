@@ -73,7 +73,7 @@ where
 
                             // Check if extracted links are new, if they are, submit them
                             for task in &tasks {
-                                if let Ok(exists) = self.manager.contains(task) {
+                                if let Ok(exists) //todo && (tjek filter også) = self.manager.contains(task) {
                                     if !exists {
                                         if let Err(_) = self.manager.submit_task(task) {
                                             eprintln!("{} failed submitting a new task to the manager.", self.name);
