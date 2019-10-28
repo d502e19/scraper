@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fmt;
 use url::Url;
 use url_normalizer;
+use rand::seq::index::sample;
 
 pub struct DefaultNormaliser;
 
@@ -20,6 +21,18 @@ impl Normaliser for DefaultNormaliser {
 }
 
 impl DefaultNormaliser {
+    /// Takes a slice of functions which gets applied to the given tasks url.
+    fn custom_normalisation<F>(&self, task: Task, f: F) -> Result<Task, ()> where F: FnOnce(Url) -> Result<Url, ()> {
+        let mut new_url = task.url;
+
+        new_url = f(new_url)?;
+
+        Ok(Task {
+            url: new_url
+        })
+    }
+
+    /// Run through all implemented normalisation functions and applying those on the given url.
     fn full_normalisation(&self, url: Url) -> Result<Url, ()> {
         let mut new_url = url;
 
@@ -145,6 +158,22 @@ impl Error for NormaliseError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_custom_normalisation0() {
+        let normaliser = DefaultNormaliser;
+        let expected_url = "shoot:shoot:shoot";
+        let mut test_task = Task {
+            url: Url::parse("HTTPS://user:pass@sub.HOST.cOm").unwrap()
+        };
+
+
+        let shoot = |url: Url| { Ok(Url::parse("shoot:shoot:shoot").unwrap()) };
+
+        test_task = normaliser.custom_normalisation(test_task, shoot).unwrap();
+
+        assert_eq!(test_task.url.to_string(), expected_url);
+    }
 
     #[test]
     fn test_empty_path_to_slash() {
