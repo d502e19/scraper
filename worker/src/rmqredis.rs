@@ -62,13 +62,14 @@ impl RMQRedisManager {
     ) -> Result<RMQRedisManager, ()> {
         // FIXME; use loglevel = info to allow this block
         {
-            println!("addr: {:?}", addr);
-            println!("rmq_port: {:?}", rmq_port);
-            println!("redis_port: {:?}", redis_port);
-            println!("rmq_exchange: {:?}", exchange);
-            println!("rmq_routing_key: {:?}", routing_key);
-            println!("rmq_queue_name: {:?}", queue_name);
-            println!("redis_set: {:?}", redis_set);
+            println!("Creating RMQRedisManager with following values:");
+            println!("\taddr: {:?}", addr);
+            println!("\trmq_port: {:?}", rmq_port);
+            println!("\tredis_port: {:?}", redis_port);
+            println!("\trmq_exchange: {:?}", exchange);
+            println!("\trmq_routing_key: {:?}", routing_key);
+            println!("\trmq_queue_name: {:?}", queue_name);
+            println!("\tredis_set: {:?}", redis_set);
         }
         let client = Client::connect(
             format!("amqp://{}:{}/%2f", addr, rmq_port).as_str(),
