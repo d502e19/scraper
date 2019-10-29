@@ -15,9 +15,9 @@ appenders:
     encoder:
      pattern: "{d} [{l}] {t}> - {m}{n}"
 
-# Set the default logging level to "debug" and attach "stdout" and "logfile" appender to the root
+# Set the default logging level to "info" and attach "stdout" and "logfile" appender to the root
 root:
-  level: debug
+  level: info
   appenders:
     - logfile
     - stdout
