@@ -86,8 +86,8 @@ where
                                     let url_as_str = String::from(url.as_str());
                                     match self.normaliser.normalise(url) {
                                         Ok(normalised_url) => Some(normalised_url),
-                                        Err(_) => {
-                                            eprintln!("{} failed to normalise {}", self.name, url_as_str);
+                                        Err(e) => {
+                                            eprintln!("{} failed to normalise {}, {}", self.name, url_as_str, e);
                                             None
                                         },
                                     }
