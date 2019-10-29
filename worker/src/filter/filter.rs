@@ -1,11 +1,12 @@
 use std::fs;
-use crate::traits::Filter;
-use crate::task::Task;
 use std::fs::File;
-use std::io::{Read, BufReader, BufRead};
+use std::io::{BufRead, BufReader, Read};
+
+use crate::task::Task;
+use crate::traits::Filter;
 
 pub(crate) struct Whitelist {
-   ok_urls: Vec<String>
+    ok_urls: Vec<String>
 }
 
 impl Whitelist {
