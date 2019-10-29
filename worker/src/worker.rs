@@ -10,7 +10,7 @@ where
     L: Downloader<S>,
     E: Extractor<S, D>,
     A: Archive<D>,
-    F: Filter<F>,
+    F: Filter,
 {
     name: String,
     manager: M,
@@ -31,7 +31,7 @@ where
     L: Downloader<S>,
     E: Extractor<S, D>,
     A: Archive<D>,
-    F: Filter<F>,
+    F: Filter,
 {
     /// Create a new worker with the given components.
     pub fn new(name: String, manager: M, downloader: L, extractor: E, archive: A, filter: F) -> Self {

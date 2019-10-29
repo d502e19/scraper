@@ -24,7 +24,7 @@ impl Whitelist {
 }
 
 
-impl Filter<Vec<u8>> for Whitelist {
+impl Filter for Whitelist {
     fn filter(&self, task: &Task) -> bool {
         if self.ok_urls.contains(&task.url.as_str().as_ref()) {
             return true
