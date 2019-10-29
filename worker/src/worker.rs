@@ -82,7 +82,16 @@ where
                             // After normalisation, squash urls into a hash set to remove duplicates
                             // Erroneous urls are discarded
                             let tasks: Vec<Task> = urls.drain(..)
-                                .filter_map(|url| self.normaliser.normalise(url).ok())
+                                .filter_map(|url| {
+                                    let url_as_str = String::from(url.as_str());
+                                    match self.normaliser.normalise(url) {
+                                        Ok(normalised_url) => Some(normalised_url),
+                                        Err(_) => {
+                                            eprintln!("{} failed to normalise {}", self.name, url_as_str);
+                                            None
+                                        },
+                                    }
+                                })
                                 .collect::<HashSet<Url>>()
                                 .drain()
                                 .map(|url| Task { url })
