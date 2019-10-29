@@ -1,21 +1,23 @@
 use std::marker::PhantomData;
 
-use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult};
+use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult, Filter};
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
-pub struct Worker<M, L, E, A, S, D>
+pub struct Worker<M, L, E, A, S, D, F>
 where
     M: Manager,
     L: Downloader<S>,
     E: Extractor<S, D>,
     A: Archive<D>,
+    F: Filter<F>,
 {
     name: String,
     manager: M,
     downloader: L,
     extractor: E,
     archive: A,
+    filter: F,
     // Phantom data markers are used to please the type checker about S and D.
     // Without it will believe that S and D are unused even though the determine the
     // type parameters of some of the components
@@ -23,21 +25,23 @@ where
     _data_type_marker: PhantomData<D>,
 }
 
-impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D>
+impl<M, L, E, A, S, D, F> Worker<M, L, E, A, S, D, F>
 where
     M: Manager,
     L: Downloader<S>,
     E: Extractor<S, D>,
     A: Archive<D>,
+    F: Filter<F>,
 {
     /// Create a new worker with the given components.
-    pub fn new(name: String, manager: M, downloader: L, extractor: E, archive: A) -> Self {
+    pub fn new(name: String, manager: M, downloader: L, extractor: E, archive: A, filter: F) -> Self {
         Worker {
             name,
             manager,
             downloader,
             extractor,
             archive,
+            filter,
             _page_type_marker: PhantomData,
             _data_type_marker: PhantomData,
         }
@@ -73,16 +77,20 @@ where
 
                             // Check if extracted links are new, if they are, submit them
                             for task in &tasks {
-                                //TODO && check filter
-                                if let Ok(exists) = self.manager.contains(task) {
-                                    if !exists {
-                                        if let Err(_) = self.manager.submit_task(task) {
-                                            eprintln!("{} failed submitting a new task to the manager.", self.name);
-                                            return TaskProcessResult::Err;
+                                if self.filter.filter(task) {
+                                    if let Ok(exists) = self.manager.contains(task) {
+                                        if !exists {
+                                            if let Err(_) = self.manager.submit_task(task) {
+                                                eprintln!("{} failed submitting a new task to the manager.", self.name);
+                                                return TaskProcessResult::Err;
+                                            }
                                         }
+                                    } else {
+                                        eprintln!("{} failed to check if a new task is present in the collection. Ignoring that task.", self.name);
+                                        return TaskProcessResult::Err;
                                     }
                                 } else {
-                                    eprintln!("{} failed to check if a new task is present in the collection. Ignoring that task.", self.name);
+                                    eprintln!("{} url in task is not in the whitelist.txt file. Ignoring that task", self.name);
                                     return TaskProcessResult::Err;
                                 }
                             }
