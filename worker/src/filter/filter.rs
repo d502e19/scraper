@@ -15,7 +15,7 @@ impl Whitelist {
     }
 
     fn read_from_whitelist_file() -> Vec<String> {
-        let file = File::open("whitelist.txt").unwrap();
+        let file = File::open("src/filter/whitelist.txt").unwrap();
         let buf = BufReader::new(file);
 
         let mut data: Vec<String> = buf.lines()
