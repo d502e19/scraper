@@ -2,10 +2,10 @@ use std::fs;
 use crate::traits::Filter;
 use crate::task::Task;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, BufReader, BufRead};
 
 pub(crate) struct Whitelist {
-   ok_urls: Vec<u8>
+   ok_urls: Vec<String>
 }
 
 impl Whitelist {
@@ -13,11 +13,16 @@ impl Whitelist {
         Whitelist { ok_urls: Whitelist::read_from_whitelist_file() }
     }
 
-    fn read_from_whitelist_file() -> Vec<u8> {
-        let mut file = File::open("whitelist.txt").expect("Could not read from whitelist file");
+    fn read_from_whitelist_file() -> Vec<String> {
+        let file = File::open("whitelist.txt").unwrap();
+        let buf = BufReader::new(file);
 
-        let mut data = Vec::new();
-        file.read_to_end(&mut data);
+        let mut data: Vec<String> = buf.lines()
+            .map(|l| l.unwrap())
+            .map(|l| {
+                l.trim().to_string()
+            })
+            .collect();
 
         return data;
     }
@@ -26,7 +31,7 @@ impl Whitelist {
 
 impl Filter for Whitelist {
     fn filter(&self, task: &Task) -> bool {
-        if self.ok_urls.contains(&task.url.as_str().as_ref()) {
+        if self.ok_urls.contains(&task.url.to_string()) {
             return true
         } else {
             return false
