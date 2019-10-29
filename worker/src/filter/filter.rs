@@ -29,6 +29,7 @@ impl Whitelist {
     }
 }
 
+//TODO fix whitelist filter to include both http and https, regex
 
 impl Filter for Whitelist {
     fn filter(&self, task: &Task) -> bool {

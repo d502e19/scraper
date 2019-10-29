@@ -34,7 +34,7 @@ mod filter;
 fn main() -> Result<(), Box<dyn Error>> {
     // Construct a worker and its components
     let manager = RMQRedisManager::new(
-        "localhost".to_string(),
+        "192.168.99.100".to_string(),
         5672,
         6379,
         "work".to_string(),

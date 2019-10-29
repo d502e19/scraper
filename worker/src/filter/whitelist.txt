@@ -4,3 +4,10 @@ reddit.com
 linkedin.com
 twitter.com
 github.com
+youtube.com
+google.com
+rust-lang.org
+amazon.co.uk
+amazon.com
+ebay.com
+facebook.com
