@@ -5,11 +5,11 @@ use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult};
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
 pub struct Worker<M, L, E, A, S, D>
-where
-    M: Manager,
-    L: Downloader<S>,
-    E: Extractor<S, D>,
-    A: Archive<D>,
+    where
+        M: Manager,
+        L: Downloader<S>,
+        E: Extractor<S, D>,
+        A: Archive<D>,
 {
     name: String,
     manager: M,
@@ -24,11 +24,11 @@ where
 }
 
 impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D>
-where
-    M: Manager,
-    L: Downloader<S>,
-    E: Extractor<S, D>,
-    A: Archive<D>,
+    where
+        M: Manager,
+        L: Downloader<S>,
+        E: Extractor<S, D>,
+        A: Archive<D>,
 {
     /// Create a new worker with the given components.
     pub fn new(name: String, manager: M, downloader: L, extractor: E, archive: A) -> Self {
@@ -53,36 +53,39 @@ where
             // TODO: Proper error handling
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
-                    error!("{} failed to download a page.", self.name);
+                    error!("{} failed to download a page. {}", self.name, e);
                     TaskProcessResult::Err
                 }
                 Ok(page) => {
                     match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
-                            error!("{} failed to extract data from page.", self.name);
+                            error!("{} failed to extract data from page. {}", self.name, e);
                             TaskProcessResult::Err
                         }
                         Ok((tasks, data)) => {
                             // Archiving
                             for datum in data {
                                 if let Err(e) = self.archive.archive_content(datum) {
-                                    error!("{} failed archiving some data.", self.name);
+                                    error!("{} failed archiving some data. {}", self.name, e);
                                     return TaskProcessResult::Err;
                                 }
                             }
 
                             // Check if extracted links are new, if they are, submit them
                             for task in &tasks {
-                                if let Ok(exists) = self.manager.contains(task) {
-                                    if !exists {
-                                        if let Err(_) = self.manager.submit_task(task) {
-                                            error!("{} failed submitting a new task to the manager.", self.name);
-                                            return TaskProcessResult::Err;
+                                match self.manager.contains(task) {
+                                    Ok(exists) => {
+                                        if !exists {
+                                            if let Err(e) = self.manager.submit_task(task) {
+                                                error!("{} failed submitting a new task to the manager. {}", self.name, e);
+                                                return TaskProcessResult::Err;
+                                            }
                                         }
                                     }
-                                } else {
-                                    error!("{} failed to check if a new task is present in the collection. Ignoring that task.", self.name);
-                                    return TaskProcessResult::Err;
+                                    Err(e) => {
+                                        error!("{} failed to check if a new task is present in the collection. Ignoring that task. {}", self.name, e);
+                                        return TaskProcessResult::Err;
+                                    }
                                 }
                             }
 
