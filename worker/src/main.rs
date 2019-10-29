@@ -1,6 +1,9 @@
 extern crate clap;
 extern crate futures;
 extern crate lapin_futures;
+#[macro_use]
+extern crate log;
+extern crate log4rs;
 extern crate rand;
 extern crate redis;
 extern crate tokio;
@@ -8,6 +11,12 @@ extern crate tokio;
 use std::error::Error;
 
 use clap::{App, Arg};
+use log4rs::append::console::ConsoleAppender;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::encode::pattern::PatternEncoder;
+use log::Level;
+use log::LevelFilter;
 
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
@@ -91,6 +100,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             .value_name("SET")
             .help("Specify the redis set to connect to")
     ).get_matches();
+
+    // Load config for logging to stdout and logfile
+    log4rs::init_file("log4rs_config.yml", Default::default()).unwrap();
+
+    info!("Starting worker on {:?}",
+          args.value_of("manager-address").unwrap().to_string());
 
     // Construct a worker and its components
     let manager = RMQRedisManager::new(
