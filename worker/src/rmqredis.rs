@@ -60,6 +60,17 @@ impl RMQRedisManager {
         queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
+        // FIXME; use loglevel = info to allow this block
+        {
+            println!("Creating RMQRedisManager with following values:");
+            println!("\taddr: {:?}", addr);
+            println!("\trmq_port: {:?}", rmq_port);
+            println!("\tredis_port: {:?}", redis_port);
+            println!("\trmq_exchange: {:?}", exchange);
+            println!("\trmq_routing_key: {:?}", routing_key);
+            println!("\trmq_queue_name: {:?}", queue_name);
+            println!("\tredis_set: {:?}", redis_set);
+        }
         let client = Client::connect(
             format!("amqp://{}:{}/%2f", addr, rmq_port).as_str(),
             ConnectionProperties::default(),
