@@ -1,5 +1,9 @@
 language: rust
-cache: cargo
+cache: 
+  - cargo
+  - directories:
+    - worker/target
+    - proxy/target
 script:
   - cargo build --verbose --all --manifest-path proxy/Cargo.toml
   - cargo test --verbose --all --manifest-path proxy/Cargo.toml
