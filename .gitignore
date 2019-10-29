@@ -1,4 +1,2 @@
 .idea/*.xml
 
-# Ignore log-files on worker
-worker/worker.log
