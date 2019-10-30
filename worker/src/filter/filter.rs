@@ -1,6 +1,6 @@
 use std::fs;
-use std::fs::File;
-use std::io::{BufRead, BufReader, Read};
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader, Read, Write};
 
 use crate::task::Task;
 use crate::traits::Filter;
@@ -30,6 +30,23 @@ impl Whitelist {
 
         return data;
     }
+    //todo check if url already exists in whitelist
+    /// Appends a url to whitelist
+    /// Called by filter function, when new host urls are found
+    fn write_to_whitelist_file(mut url: String) -> bool {
+
+        // Open whitelist file
+        let mut file = OpenOptions::new().append(true)
+            .open("src/filter/whitelist.txt").expect(
+            "cannot open whitelist file");
+
+        // Add newline to string, so one url pr line in whitelist
+        url.push_str("\n");
+
+        // Write url to whitelist
+        file.write(url.as_bytes()).expect("write to whitelist failed");
+        return true;
+    }
 }
 
 impl Filter for Whitelist {
@@ -46,10 +63,12 @@ impl Filter for Whitelist {
                     return true;
                 }
             }
-            //todo add to whitelist
-            println!(">>>>>>>>>>FOUND NEW HOST_URL: {}<<<<<<<<<<", host_url);
+            // If url is not in whitelist, append to whitelist
+            println!("FOUND NEW HOST_URL: >>>>>>>>>>{}<<<<<<<<<< PRINTING TO WHITELIST", host_url);
+            Whitelist::write_to_whitelist_file(host_url);
             return false;
         }
+        // If no host url in task, e.g if task is an email adress, return false
         eprintln!("Not possible to find host url in task url");
         return false;
     }
