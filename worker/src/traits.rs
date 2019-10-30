@@ -2,7 +2,7 @@ use std::error::Error;
 
 use url::Url;
 
-use crate::errors::{ArchiveResult, DownloadResult, ExtractResult, ManagerResult};
+use crate::errors::{ArchiveResult, DownloadResult, ExtractResult, ManagerResult, NormaliseResult};
 use crate::task::Task;
 
 pub trait Manager {
@@ -44,7 +44,7 @@ pub trait Downloader<S> {
 }
 
 pub trait Extractor<S, D> {
-    fn extract_content(&self, page: S, url: &Url) -> ExtractResult<(Vec<Task>, Vec<D>)>;
+    fn extract_content(&self, page: S, url: &Url) -> ExtractResult<(Vec<Url>, Vec<D>)>;
 }
 
 pub trait Archive<D> {
@@ -52,5 +52,5 @@ pub trait Archive<D> {
 }
 
 pub trait Normaliser {
-    fn normalise(&self, task: Task) -> Result<Task, Box<dyn Error>>;
+    fn normalise(&self, url: Url) -> NormaliseResult<Url>;
 }
