@@ -30,28 +30,30 @@ impl Whitelist {
 
         return data;
     }
-    //todo check if url already exists in whitelist
-    /// Appends a url to whitelist
-    /// Called by filter function, when new host urls are found
+
+    /// Appends a url to whitelist if it is not already in the whitelist
     fn write_to_whitelist_file(mut url: String) -> bool {
+        // If url is not in the whitelist file, append it to the whitelist file
+        if !Whitelist::read_from_whitelist_file().contains(&url) {
 
-        // Open whitelist file
-        let mut file = OpenOptions::new().append(true)
-            .open("src/filter/whitelist.txt").expect(
-            "cannot open whitelist file");
+            // Open whitelist file
+            let mut file = OpenOptions::new().append(true)
+                .open("src/filter/whitelist.txt")
+                .expect("cannot open whitelist file");
 
-        // Add newline to string, so one url pr line in whitelist
-        url.push_str("\n");
+            // Write url to whitelist file, with newline
+            file.write(format!("{}\n", url).as_bytes()).
+                expect("write to whitelist failed");
 
-        // Write url to whitelist
-        file.write(url.as_bytes()).expect("write to whitelist failed");
-        return true;
+            return true;
+        }
+        // Return false if url already is in the whitelist file
+        return false;
     }
 }
 
 impl Filter for Whitelist {
-    /// Takes a task and returns true or false, whether or not the url in the task is found in the
-    /// whitelist.txt
+    /// Takes a task and returns true if the task's url exists in whitelist file, else false
     fn filter(&self, task: &Task) -> bool {
         // If there is a host string assign this to host-url, else return false
         if let Some(host_url) = task.url.host_str() {
@@ -68,7 +70,7 @@ impl Filter for Whitelist {
             Whitelist::write_to_whitelist_file(host_url);
             return false;
         }
-        // If no host url in task, e.g if task is an email adress, return false
+        // If no host url in task, e.g if task is an email address, return false
         eprintln!("Not possible to find host url in task url");
         return false;
     }
