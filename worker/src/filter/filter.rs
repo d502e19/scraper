@@ -11,6 +11,7 @@ pub(crate) struct Whitelist {
 }
 
 //TODO arg for not using whitelist
+//TODO add error(handling)
 impl Whitelist {
     pub fn new() -> Self {
         Whitelist { whitelist: Whitelist::read_from_whitelist_file() }
@@ -70,7 +71,7 @@ impl Filter for Whitelist {
                 }
             }
             // If url is not in whitelist, append to whitelist. Assumes all links are good.
-            println!("FOUND NEW HOST_URL: >>>>>>>>>>{}<<<<<<<<<< PRINTING TO WHITELIST", host_url);
+            println!("FOUND NEW HOST_URL: >>>>>>>>>>{}<<<<<<<<<< ATTEMPTING TO PRINT TO WHITELIST", host_url);
             Whitelist::write_to_whitelist_file(host_url);
             return false;
         }
