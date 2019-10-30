@@ -50,7 +50,6 @@ impl<M, L, E, A, S, D> Worker<M, L, E, A, S, D>
         info!("Worker {} has started", self.name);
         self.manager.start_listening(move |task| {
             info!("Worker {} received task {}", self.name, task.url);
-            // TODO: Proper error handling
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     error!("{} failed to download a page. {}", self.name, e);
