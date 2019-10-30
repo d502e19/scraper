@@ -1,6 +1,5 @@
 use url::Url;
 use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
-use std::marker::Sized;
 
 #[derive(Hash, Eq, Debug)]
 pub struct Task {
@@ -13,7 +12,7 @@ impl Task {
     }
 
     pub fn deserialise(data: Vec<u8>) -> ManagerResult<Self> {
-        let data_to_string_res = String::from_utf8(data);//.as_str();
+        let data_to_string_res = String::from_utf8(data);
         match data_to_string_res {
             Ok(data) => {
                 let url_res = Url::parse(&data) ;
@@ -22,7 +21,7 @@ impl Task {
                     Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, String::from("failed to deserialise"), Some(Box::new(e))))
                 }
             },
-            Err(er) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, String::from("failed to change data to string"), Some(Box::new(er))))
+            Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, String::from("failed to deserialise"), Some(Box::new(e))))
         }
     }
 }
@@ -108,5 +107,21 @@ mod tests {
         let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
         let task2 = task::Task { url: Url::parse("https://aau.dk:81").unwrap() };
         assert_ne!(task1, task2)
+    }
+
+    // deserialise casts an error when data is not an url
+    #[test]
+    fn deserialise_fail_01() {
+        let task = "mail@aau.dk".as_bytes();
+        let task_deserialise = Task::deserialise(task.to_vec());
+        assert!(task_deserialise.is_err())
+    }
+
+    // deserialise casts an error if the url contains anything that is not utf-8
+    #[test]
+    fn deserialise_fail_02() {
+        let task = "https://www.�.com".as_bytes();
+        let task_deserialise = Task::deserialise(task.to_vec());
+        assert!(task_deserialise.is_err())
     }
 }
