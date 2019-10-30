@@ -2,7 +2,7 @@ use std::error::Error;
 
 use url::Url;
 
-use crate::errors::{ArchiveResult, DownloadResult, ExtractResult, ManagerResult};
+use crate::errors::{ArchiveResult, DownloadResult, ExtractResult, ManagerResult, NormaliseResult};
 use crate::task::Task;
 
 pub trait Manager {
@@ -52,5 +52,5 @@ pub trait Archive<D> {
 }
 
 pub trait Normaliser {
-    fn normalise(&self, url: Url) -> Result<Url, Box<dyn Error>>;
+    fn normalise(&self, url: Url) -> NormaliseResult<Url>;
 }

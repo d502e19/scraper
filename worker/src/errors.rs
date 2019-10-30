@@ -23,6 +23,11 @@ pub enum ExtractErrorKind {
 }
 
 #[derive(Debug)]
+pub enum NormaliseErrorKind {
+    ParsingError,        // Could not parse url
+}
+
+#[derive(Debug)]
 pub enum ArchiveErrorKind {
     NetworkError,        // No internet
     UnreachableError,    // No responds
@@ -45,12 +50,14 @@ where
 pub type ManagerError = ScraperError<ManagerErrorKind>;
 pub type DownloadError = ScraperError<DownloadErrorKind>;
 pub type ExtractError = ScraperError<ExtractErrorKind>;
+pub type NormaliseError = ScraperError<NormaliseErrorKind>;
 pub type ArchiveError = ScraperError<ArchiveErrorKind>;
 
 // std Results with web scraper errors
 pub type ManagerResult<T> = std::result::Result<T, ManagerError>;
 pub type DownloadResult<T> = std::result::Result<T, DownloadError>;
 pub type ExtractResult<T> = std::result::Result<T, ExtractError>;
+pub type NormaliseResult<T> = std::result::Result<T, NormaliseError>;
 pub type ArchiveResult<T> = std::result::Result<T, ArchiveError>;
 
 
@@ -92,6 +99,17 @@ impl ExtractError {
     /// Create a new ExtractError with a kind, message, and optional source error.
     pub fn new(kind: ExtractErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
         ExtractError {
+            kind,
+            msg,
+            source,
+        }
+    }
+}
+
+impl NormaliseError {
+    /// Create a new NormaliseError with a kind, message, and optional source error.
+    pub fn new(kind: NormaliseErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+        NormaliseError {
             kind,
             msg,
             source,
@@ -149,6 +167,12 @@ impl Display for ExtractErrorKind {
     }
 }
 
+impl Display for NormaliseErrorKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl Display for ArchiveErrorKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
@@ -160,7 +184,7 @@ impl Display for ArchiveErrorKind {
 mod tests {
     use std::fmt::Display;
 
-    use crate::errors::{ArchiveError, ArchiveErrorKind, DownloadError, DownloadErrorKind, ExtractError, ExtractErrorKind, ManagerError, ManagerErrorKind};
+    use crate::errors::{ArchiveError, ArchiveErrorKind, DownloadError, DownloadErrorKind, ExtractError, ExtractErrorKind, ManagerError, ManagerErrorKind, NormaliseError, NormaliseErrorKind};
 
     /// Testing formatting of ManagerError without source error
     #[test]
@@ -204,13 +228,13 @@ mod tests {
         let error = ArchiveError::new(
             ArchiveErrorKind::ServerError,
             String::from("Server tried to download something and failed"),
-            Some(Box::new(DownloadError::new(
-                DownloadErrorKind::NetworkError,
+            Some(Box::new(NormaliseError::new(
+                NormaliseErrorKind::ParsingError,
                 String::from("Trying to test nested errors"),
                 None,
             ))),
         );
-        let expected_str = "ServerError: Server tried to download something and failed (source: NetworkError: Trying to test nested errors)";
+        let expected_str = "ServerError: Server tried to download something and failed (source: ParsingError: Trying to test nested errors)";
         assert_eq!(format!("{}", error), expected_str);
     }
 }
