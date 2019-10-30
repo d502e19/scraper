@@ -49,7 +49,7 @@ fn get_log4rs_config(log_dir: &str, default_log_level: LevelFilter) -> log4rs::c
     // Create a logfile-appender for printing to file
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} [{l}] {t} - {m}{n}")))
-        .build("worker.log")
+        .build(log_dir)
         .unwrap();
 
     // Create and return a config which incorporates the two built appenders
