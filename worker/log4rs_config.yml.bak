@@ -13,7 +13,7 @@ appenders:
     kind: file
     path: "worker.log"
     encoder:
-     pattern: "{d} [{l}] {t}> - {m}{n}"
+     pattern: "{d} [{l}] {t} - {m}{n}"
 
 # Set the default logging level to "info" and attach "stdout" and "logfile" appender to the root
 root:

@@ -87,7 +87,7 @@ impl<M, L, E, N, A, S, D> Worker<M, L, E, N, A, S, D>
                                     match self.normaliser.normalise(url) {
                                         Ok(normalised_url) => Some(normalised_url),
                                         Err(e) => {
-                                            eprintln!("{} failed to normalise {}, {}", self.name, url_as_str, e);
+                                            error!("{} failed to normalise {}, {}", self.name, url_as_str, e);
                                             None
                                         }
                                     }
