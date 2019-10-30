@@ -10,6 +10,7 @@ pub(crate) struct Whitelist {
     whitelist: Vec<String>
 }
 
+//TODO arg for not using whitelist
 impl Whitelist {
     pub fn new() -> Self {
         Whitelist { whitelist: Whitelist::read_from_whitelist_file() }
@@ -32,9 +33,12 @@ impl Whitelist {
     }
 
     /// Appends a url to whitelist if it is not already in the whitelist
-    fn write_to_whitelist_file(mut url: String) -> bool {
+    fn write_to_whitelist_file(url: String) -> bool {
+        // Remove www. from url
+        let shortened_url = url.replacen("www.", "", 1);
+
         // If url is not in the whitelist file, append it to the whitelist file
-        if !Whitelist::read_from_whitelist_file().contains(&url) {
+        if !Whitelist::read_from_whitelist_file().contains(&shortened_url) {
 
             // Open whitelist file
             let mut file = OpenOptions::new().append(true)
@@ -42,8 +46,8 @@ impl Whitelist {
                 .expect("cannot open whitelist file");
 
             // Write url to whitelist file, with newline
-            file.write(format!("{}\n", url).as_bytes()).
-                expect("write to whitelist failed");
+            file.write(format!("\n{}", shortened_url).as_bytes()).
+                expect("write to whitelist file failed");
 
             return true;
         }
@@ -65,7 +69,7 @@ impl Filter for Whitelist {
                     return true;
                 }
             }
-            // If url is not in whitelist, append to whitelist
+            // If url is not in whitelist, append to whitelist. Assumes all links are good.
             println!("FOUND NEW HOST_URL: >>>>>>>>>>{}<<<<<<<<<< PRINTING TO WHITELIST", host_url);
             Whitelist::write_to_whitelist_file(host_url);
             return false;
