@@ -30,7 +30,13 @@ impl ToRedisArgs for &Task {
 impl FromRedisValue for Task {
     fn from_redis_value(v: &Value) -> Result<Self, RedisError> {
         match *v {
-            Value::Data(ref bytes) => Ok(Task::deserialise(bytes.to_owned())),
+            Value::Data(ref bytes) => {
+                let result = Task::deserialise(bytes.to_owned());
+                match result {
+                    Ok(task) => Ok(task),
+                    Err(e) => Err(RedisError::from(Error::new(ErrorKind::Other, "failed to deserialise")))
+                }
+            },
             _ => Err(RedisError::from(Error::new(
                 ErrorKind::Other,
                 "Response could not be translated to a task",
@@ -130,18 +136,25 @@ impl Manager for RMQRedisManager {
             )
             .and_then(move |consumer| {
                 consumer.for_each(move |delivery| {
-                    let task = Task::deserialise(delivery.data);
-                    let result = f(task);
-                    match result {
-                        TaskProcessResult::Ok => {
-                            self.channel.basic_ack(delivery.delivery_tag, false)
+                    let task_res = Task::deserialise(delivery.data);
+                    match task_res {
+                        Err(e) => {
+                            self.channel.basic_reject(delivery.delivery_tag, BasicRejectOptions::default())
+                        },
+                        Ok(task) => {
+                            let result = f(task);
+                            match result {
+                                TaskProcessResult::Ok => {
+                                    self.channel.basic_ack(delivery.delivery_tag, false)
+                                }
+                                TaskProcessResult::Err => self
+                                    .channel
+                                    .basic_reject(delivery.delivery_tag, BasicRejectOptions::default()),
+                                TaskProcessResult::Reject => self
+                                    .channel
+                                    .basic_reject(delivery.delivery_tag, BasicRejectOptions::default()),
+                            }
                         }
-                        TaskProcessResult::Err => self
-                            .channel
-                            .basic_reject(delivery.delivery_tag, BasicRejectOptions::default()),
-                        TaskProcessResult::Reject => self
-                            .channel
-                            .basic_reject(delivery.delivery_tag, BasicRejectOptions::default()),
                     }
                 })
             })

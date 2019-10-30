@@ -1,4 +1,6 @@
 use url::Url;
+use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
+use std::marker::Sized;
 
 #[derive(Hash, Eq, Debug)]
 pub struct Task {
@@ -10,10 +12,17 @@ impl Task {
         self.url.as_str().as_bytes().to_vec()
     }
 
-    pub fn deserialise(data: Vec<u8>) -> Self {
-        Task {
-            // TODO; should implement error-checking on unwrapping both string from data and URL-parsing.
-            url: Url::parse(String::from_utf8(data).unwrap().as_str()).unwrap(),
+    pub fn deserialise(data: Vec<u8>) -> ManagerResult<Self> {
+        let data_to_string_res = String::from_utf8(data);//.as_str();
+        match data_to_string_res {
+            Ok(data) => {
+                let url_res = Url::parse(&data) ;
+                match url_res {
+                    Ok(url) => Ok(Task { url }),
+                    Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, String::from("failed to deserialise"), Some(Box::new(e))))
+                }
+            },
+            Err(er) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, String::from("failed to change data to string"), Some(Box::new(er))))
         }
     }
 }
@@ -36,7 +45,7 @@ mod tests {
     fn serialise_deserialise_success() {
         let task1 = task::Task { url: Url::parse("http://aau.dk/").unwrap() };
         let task1_serialised = task1.serialise();
-        let task1_regen = Task::deserialise(task1_serialised);
+        let task1_regen = Task::deserialise(task1_serialised).unwrap();
         assert_eq!(task1, task1_regen);
     }
 
@@ -48,8 +57,8 @@ mod tests {
 
         let task1_serialised = task1.serialise();
         let task2_serialised = task2.serialise();
-        let task1_regen = Task::deserialise(task1_serialised);
-        let task2_regen = Task::deserialise(task2_serialised);
+        let task1_regen = Task::deserialise(task1_serialised).unwrap();
+        let task2_regen = Task::deserialise(task2_serialised).unwrap();
         assert_ne!(task1_regen, task2_regen);
     }
 
