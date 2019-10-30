@@ -12,9 +12,9 @@ pub struct DefaultNormaliser;
 impl Normaliser for DefaultNormaliser {
     /// Normalising the tasks URL by setting scheme and path to lowercase,
     /// removing the dot in path, removes hash from url and ordering the query.
-    fn normalise(&self, task: Task) -> Result<Task, Box<dyn Error>> {
-        match self.full_normalisation(task.url) {
-            Ok(url) => Ok(Task { url }),
+    fn normalise(&self, url: Url) -> Result<Url, Box<dyn Error>> {
+        match self.full_normalisation(url) {
+            Ok(url) => Ok(url),
             Err(_) => Err(Box::new(NormaliseError("Normalisation went wrong.".into()))),
         }
     }
