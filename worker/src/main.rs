@@ -40,7 +40,7 @@ mod archive;
 mod defaultnormaliser;
 
 /// Create and return log4rs-config with some default values
-fn get_log4rs_config(log_dir: &str, default_log_level: LevelFilter) -> log4rs::config::Config {
+fn get_log4rs_config(log_path: &str, default_log_level: LevelFilter) -> log4rs::config::Config {
     // Create a stdout-appender for printing to stdout
     let stdout = ConsoleAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} [{l}] {t} - {m}{n}")))
@@ -49,7 +49,7 @@ fn get_log4rs_config(log_dir: &str, default_log_level: LevelFilter) -> log4rs::c
     // Create a logfile-appender for printing to file
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} [{l}] {t} - {m}{n}")))
-        .build(log_dir)
+        .build(log_path)
         .unwrap();
 
     // Create and return a config which incorporates the two built appenders
@@ -144,7 +144,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Load config for logging to stdout and logfile.
     if let Ok(handle) = log4rs::init_config(
         get_log4rs_config(
-            "worker.log",
+            args.value_of("log-path").unwrap(),
             match args.value_of("log-level").unwrap().to_lowercase().as_str() {
                 "error" => LevelFilter::Error,
                 "warn" => LevelFilter::Warn,
