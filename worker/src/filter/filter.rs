@@ -33,7 +33,7 @@ impl Whitelist {
 
 impl Filter for Whitelist {
     fn filter(&self, task: &Task) -> bool {
-        if self.ok_urls.contains(&task.url.to_string()) {
+        if self.ok_urls.contains(&task.url.host_str().unwrap().to_string()) {
             return true
         } else {
             return false

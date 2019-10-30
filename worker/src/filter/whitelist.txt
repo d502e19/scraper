@@ -11,3 +11,7 @@ amazon.co.uk
 amazon.com
 ebay.com
 facebook.com
+overleaf.com
+dr.dk
+tv2.dk
+yr.no
