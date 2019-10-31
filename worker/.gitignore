@@ -1,2 +1,5 @@
 /target
-**/*.rs.bk
+**/*.rsi.bk
+
+# Ignore worker-logs
+worker.log
