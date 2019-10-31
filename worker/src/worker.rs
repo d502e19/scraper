@@ -118,7 +118,7 @@ where
                                         return TaskProcessResult::Err;
                                     }
                                 } else {
-                                    eprintln!("{} url in task is not in the whitelist.txt file. Ignoring that task", self.name);
+                                    eprintln!("Ignoring task because the url of the task is not in whitelist.txt file: {}", task.url);
                                     return TaskProcessResult::Err;
                                 }
                             }
