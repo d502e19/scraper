@@ -155,7 +155,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 _ => LevelFilter::Off,
             })
     ) {
-        info!("Starting worker on {:?}",
+        info!("Starting worker module using RabbitMQ and redis on {:?}",
               args.value_of("manager-address").unwrap().to_string());
 
         // Construct a worker and its components

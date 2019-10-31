@@ -60,7 +60,7 @@ impl RMQRedisManager {
         queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
-        info!("Creating RMQRedisManager with following values: \n\taddr: {:?}\n\trmq_port: {:?}\
+        debug!("Creating RMQRedisManager with following values: \n\taddr: {:?}\n\trmq_port: {:?}\
             \n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\trmq_routing_key: {:?}\
             \n\trmq_queue_name: {:?}\n\tredis_set: {:?}"
               , addr, rmq_port, redis_port, exchange, routing_key, queue_name, redis_set);
