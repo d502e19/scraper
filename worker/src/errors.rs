@@ -75,10 +75,10 @@ where
 
 impl ManagerError {
     /// Create a new ManagerError with a kind, message, and optional source error.
-    pub fn new(kind: ManagerErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+    pub fn new(kind: ManagerErrorKind, msg: &str, source: Option<Box<dyn Error>>) -> Self {
         ManagerError {
             kind,
-            msg,
+            msg: String::from(msg),
             source,
         }
     }
@@ -86,10 +86,10 @@ impl ManagerError {
 
 impl DownloadError {
     /// Create a new DownloadError with a kind, message, and optional source error.
-    pub fn new(kind: DownloadErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+    pub fn new(kind: DownloadErrorKind, msg: &str, source: Option<Box<dyn Error>>) -> Self {
         DownloadError {
             kind,
-            msg,
+            msg: String::from(msg),
             source,
         }
     }
@@ -97,10 +97,10 @@ impl DownloadError {
 
 impl ExtractError {
     /// Create a new ExtractError with a kind, message, and optional source error.
-    pub fn new(kind: ExtractErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+    pub fn new(kind: ExtractErrorKind, msg: &str, source: Option<Box<dyn Error>>) -> Self {
         ExtractError {
             kind,
-            msg,
+            msg: String::from(msg),
             source,
         }
     }
@@ -108,10 +108,10 @@ impl ExtractError {
 
 impl NormaliseError {
     /// Create a new NormaliseError with a kind, message, and optional source error.
-    pub fn new(kind: NormaliseErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+    pub fn new(kind: NormaliseErrorKind, msg: &str, source: Option<Box<dyn Error>>) -> Self {
         NormaliseError {
             kind,
-            msg,
+            msg: String::from(msg),
             source,
         }
     }
@@ -119,10 +119,10 @@ impl NormaliseError {
 
 impl ArchiveError {
     /// Create a new ArchiveError with a kind, message, and optional source error.
-    pub fn new(kind: ArchiveErrorKind, msg: String, source: Option<Box<dyn Error>>) -> Self {
+    pub fn new(kind: ArchiveErrorKind, msg: &str, source: Option<Box<dyn Error>>) -> Self {
         ArchiveError {
             kind,
-            msg,
+            msg: String::from(msg),
             source,
         }
     }
@@ -191,7 +191,7 @@ mod tests {
     fn display_manager_error_no_source() {
         let error = ManagerError::new(
             ManagerErrorKind::NetworkError,
-            String::from("Some message"),
+            "Some message",
             None,
         );
         let expected_str = "NetworkError: Some message";
@@ -203,7 +203,7 @@ mod tests {
     fn display_download_error_no_source() {
         let error = DownloadError::new(
             DownloadErrorKind::InvalidURL,
-            String::from("URL was an empty string"),
+            "URL was an empty string",
             None,
         );
         let expected_str = "InvalidURL: URL was an empty string";
@@ -215,7 +215,7 @@ mod tests {
     fn display_extract_error_with_source() {
         let error = ExtractError::new(
             ExtractErrorKind::ParsingError,
-            String::from("Could not parse data"),
+            "Could not parse data",
             Some(Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, "Data was not found"))),
         );
         let expected_str = "ParsingError: Could not parse data (source: Data was not found)";
@@ -227,10 +227,10 @@ mod tests {
     fn display_archive_error_with_source() {
         let error = ArchiveError::new(
             ArchiveErrorKind::ServerError,
-            String::from("Server tried to download something and failed"),
+            "Server tried to download something and failed",
             Some(Box::new(NormaliseError::new(
                 NormaliseErrorKind::ParsingError,
-                String::from("Trying to test nested errors"),
+                "Trying to test nested errors",
                 None,
             ))),
         );

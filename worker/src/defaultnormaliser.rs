@@ -7,6 +7,7 @@ use url::Url;
 use url_normalizer;
 use rand::seq::index::sample;
 use crate::errors::{NormaliseResult, NormaliseError, NormaliseErrorKind};
+use crate::errors::NormaliseErrorKind::ParsingError;
 
 pub struct DefaultNormaliser;
 
@@ -26,7 +27,7 @@ impl DefaultNormaliser {
         //Normalising by ordering the query in alphabetic order,
         //removes hash from url and changes encrypted to unencrypted.
         new_url = url_normalizer::normalize(new_url).map_err(|_| {
-            NormaliseError::new(NormaliseErrorKind::ParsingError, String::from("Failed to normalise using url library"), None)
+            NormaliseError::new(ParsingError, "Failed to normalise using url library", None)
         })?;
 
         new_url = DefaultNormaliser::scheme_and_host_to_lowercase(new_url)?;
@@ -43,13 +44,13 @@ impl DefaultNormaliser {
         if let Some(host) = new_url.host_str() {
             let host = host.to_lowercase();
             new_url.set_host(Some(host.as_str())).map_err(|e| {
-                NormaliseError::new(NormaliseErrorKind::ParsingError, String::from("Failed to make host lower-case"), Some(Box::new(e)))
+                NormaliseError::new(ParsingError, "Failed to make host lower-case", Some(Box::new(e)))
             })?;
         }
 
         let scheme = new_url.scheme().to_lowercase();
         new_url.set_scheme(scheme.as_str()).map_err(|_| {
-            NormaliseError::new(NormaliseErrorKind::ParsingError, String::from("Failed to make scheme lower-case"), None)
+            NormaliseError::new(ParsingError, "Failed to make scheme lower-case", None)
         })?;
 
         Ok(new_url)
@@ -84,7 +85,7 @@ impl DefaultNormaliser {
 
         // Parse the built string as an url for return
         Url::parse(str_build.as_str()).map_err(|e| {
-            NormaliseError::new(NormaliseErrorKind::ParsingError, String::from("Failed converting triplets to uppercase"), Some(Box::new(e)))
+            NormaliseError::new(ParsingError, "Failed converting triplets to uppercase", Some(Box::new(e)))
         })
     }
 
@@ -100,7 +101,7 @@ impl DefaultNormaliser {
         } else {
             url_as_str.to_string().push_str("/");
             Url::parse(url_as_str).map_err(|e| {
-                NormaliseError::new(NormaliseErrorKind::ParsingError, String::from("Failed adding '/' for empty path"), Some(Box::new(e)))
+                NormaliseError::new(ParsingError, "Failed adding '/' for empty path", Some(Box::new(e)))
             })
         }
     }

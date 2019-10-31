@@ -6,6 +6,7 @@ use lapin_futures::options::BasicPublishOptions;
 
 use crate::errors::{ArchiveError, ArchiveErrorKind, ArchiveResult};
 use crate::traits::Archive;
+use crate::errors::ArchiveErrorKind::UnreachableError;
 
 pub struct RabbitMQArchive {
     channel: Channel,
@@ -35,6 +36,6 @@ impl<D> Archive<D> for RabbitMQArchive
             BasicProperties::default(),
         ).wait();
 
-        res.map_err(|e| ArchiveError::new(ArchiveErrorKind::UnreachableError, String::from("Could not archive to RabbitMQ"), Some(Box::new(e))))
+        res.map_err(|e| ArchiveError::new(UnreachableError, "Could not archive to RabbitMQ", Some(Box::new(e))))
     }
 }
