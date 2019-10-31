@@ -31,7 +31,7 @@ mod defaultnormaliser;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Set up arguments and get resulting arguments
-    let args = App::new("DatScraper")
+    let args = App::new("DatScraper Worker")
         .version("0.1.0")
         .author("d502e19@aau")
         .arg(
