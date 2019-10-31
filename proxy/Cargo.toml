@@ -1,7 +1,14 @@
 [package]
 name = "redis-proxy"
 version = "0.1.0"
-authors = ["NicEastvillage <nicoesterby@gmail.com>"]
+authors = ["d502e19 <d502e19@cs.aau.dk>",
+    "Esben Jensen <ebje17@student.aau.dk>",
+    "Falke Carlsen <falke.cs@gmail.com",
+    "Jacob Jenner Rasmussen <jacob@jener.dk>",
+    "Lars Bo Frydenskov <lfryde17@student.aau.dk>",
+    "Mathias Mehl Sørensen <mmsa17@student.aau.dk>",
+    "Nicolaj Østerby Jensen <naje17@student.aau.dk>",
+    ]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

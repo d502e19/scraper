@@ -16,7 +16,7 @@ impl<D, H> Extractor<Vec<u8>, D> for HTMLExtractorBase<D, H>
 where
     H: HTMLExtractor<D>,
 {
-    fn extract_content(&self, content: Vec<u8>, url: &Url) -> ExtractResult<(Vec<Task>, Vec<D>)> {
+    fn extract_content(&self, content: Vec<u8>, url: &Url) -> ExtractResult<(Vec<Url>, Vec<D>)> {
         let html = String::from_utf8(content).map_err(|e| {
             ExtractError::new(ExtractErrorKind::ParsingError, String::from("Failed to parse html"), Some(Box::new(e)))
         })?;
@@ -36,7 +36,7 @@ impl<D, H: HTMLExtractor<D>> HTMLExtractorBase<D, H> {
 }
 
 pub trait HTMLExtractor<D> {
-    fn extract_from_html(&self, content: Html, url: &Url) -> ExtractResult<(Vec<Task>, Vec<D>)>;
+    fn extract_from_html(&self, content: Html, url: &Url) -> ExtractResult<(Vec<Url>, Vec<D>)>;
 }
 
 pub struct HTMLLinkExtractor {
@@ -56,8 +56,8 @@ impl HTMLExtractor<()> for HTMLLinkExtractor {
         &self,
         content: Html,
         reference_url: &Url,
-    ) -> ExtractResult<(Vec<Task>, Vec<()>)> {
-        let tasks: Vec<Task> = content
+    ) -> ExtractResult<(Vec<Url>, Vec<()>)> {
+        let tasks: Vec<Url> = content
             .select(&self.link_selector)
             .filter_map(|element| element.value().attr("href"))
             .filter_map(|url| {
@@ -66,7 +66,6 @@ impl HTMLExtractor<()> for HTMLLinkExtractor {
                     .parse(url)
                     .ok()
             })
-            .map(|url| Task { url })
             .collect();
 
         Ok((tasks, vec![]))
@@ -94,9 +93,9 @@ mod tests {
         let result = extractor.extract_content(test_string.as_bytes().to_vec(), &url);
 
         match result {
-            Ok((tasks, _)) => {
-                assert_eq!(tasks.len(), 1);
-                assert_eq!(tasks[0].url.as_str(), "http://example.com/");
+            Ok((urls, _)) => {
+                assert_eq!(urls.len(), 1);
+                assert_eq!(urls[0].as_str(), "http://example.com/");
             }
             Err(_) => panic!(),
         }
@@ -118,9 +117,9 @@ mod tests {
         let result = extractor.extract_content(test_string.as_bytes().to_vec(), &url);
 
         match result {
-            Ok((tasks, _)) => {
-                assert_eq!(tasks.len(), 1);
-                assert_eq!(tasks[0].url.as_str(), "http://ref.ref/test");
+            Ok((url, _)) => {
+                assert_eq!(url.len(), 1);
+                assert_eq!(url[0].as_str(), "http://ref.ref/test");
             }
             Err(_) => panic!(),
         }
