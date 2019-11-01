@@ -96,10 +96,6 @@ impl Filter for Whitelist {
             return false;
         }
         // If no host url in task, e.g if task is an email address, return false
-        eprintln!(
-            "[filter] Not possible to find host url in task url: {}",
-            task.url
-        );
         return false;
     }
 }
