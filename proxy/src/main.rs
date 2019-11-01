@@ -9,14 +9,10 @@ use std::error::Error;
 use clap::{App, Arg};
 use futures::future::Future;
 use futures::stream::Stream;
-use lapin_futures::options::{
-    BasicConsumeOptions, BasicRejectOptions, ExchangeDeclareOptions, QueueBindOptions,
-    QueueDeclareOptions,
-};
+use lapin_futures::{Client, ConnectionProperties};
+use lapin_futures::options::{BasicConsumeOptions, BasicRejectOptions, QueueDeclareOptions};
 use lapin_futures::types::FieldTable;
-use lapin_futures::{Client, ConnectionProperties, ExchangeKind};
-use redis::Commands;
-use redis::RedisResult;
+use redis::{RedisResult, Commands};
 
 use crate::task::Task;
 
@@ -60,16 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .help("Specify the redis set to connect to"),
         )
         .arg(
-            Arg::with_name("rabbitmq-queue")
-                .short("q")
-                .long("rmq-queue")
-                .env("SCRAPER_RABBITMQ_QUEUE")
-                .default_value("frontier")
-                .value_name("QUEUE")
-                .help("Specify the RabbitMQ queue to connect to"),
-        )
-        .arg(
-            Arg::with_name("rabbitmq-redis-queue")
+            Arg::with_name("rabbitmq-collection-queue")
                 .short("d")
                 .long("rmq-redis-queue")
                 .env("SCRAPER_RABBITMQ_REDIS_QUEUE")
@@ -78,22 +65,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .help("Specify the RabbitMQ-REDIS queue to connect to"),
         )
         .arg(
-            Arg::with_name("rabbitmq-exchange")
-                .short("e")
-                .long("rmq-exchange")
-                .env("SCRAPER_RABBITMQ_EXCHANGE")
-                .default_value("work")
-                .value_name("EXCHANGE")
-                .help("Specify the RabbitMQ exchange to connect to"),
-        )
-        .arg(
-            Arg::with_name("rabbitmq-routing-key")
-                .short("k")
-                .long("rmq-routing-key")
-                .env("SCRAPER_RABBITMQ_ROUTING_KEY")
-                .default_value("") // No routing-key by default
-                .value_name("KEY")
-                .help("Specify the RabbitMQ routing-key to connect to"),
+            Arg::with_name("rabbitmq-consumer-tag")
+                .short("t")
+                .long("rmq-consumer-tag")
+                .env("SCRAPER_RABBITMQ_CONSUMER_TAG")
+                .default_value("proxy")
+                .value_name("TAG")
+                .help("Specify the RabbitMQ consumer tag to use"),
         )
         .get_matches();
 
@@ -105,9 +83,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("redis-address").unwrap(),
             args.value_of("redis-port").unwrap()
         )
-        .as_str(),
+            .as_str(),
     )
-    .unwrap();
+        .unwrap();
     let con = client.get_connection();
     match con {
         Ok(mut connection) => {
@@ -118,64 +96,50 @@ fn main() -> Result<(), Box<dyn Error>> {
                     args.value_of("redis-address").unwrap(),
                     args.value_of("redis-port").unwrap()
                 )
-                .as_str()
-                .into()
+                    .as_str()
+                    .into()
             });
             futures::executor::spawn(
                 Client::connect(&addr, ConnectionProperties::default()).and_then(|client| {
                     // Finds collection and sees the tasks
                     client.create_channel().and_then(|channel| {
-                        channel.exchange_declare(
-                            args.value_of("rabbitmq-exchange").unwrap(),
-                            ExchangeKind::Fanout,
-                            ExchangeDeclareOptions::default(),
-                            FieldTable::default(),
-                        );
                         channel
                             .queue_declare(
-                                args.value_of("rabbitmq-redis-queue").unwrap(),
+                                args.value_of("rabbitmq-collection-queue").unwrap(),
                                 QueueDeclareOptions::default(),
                                 FieldTable::default(),
                             )
                             .and_then(move |queue| {
-                                channel.queue_bind(
-                                    args.value_of("rabbitmq-redis-queue").unwrap(),
-                                    args.value_of("rabbitmq-exchange").unwrap(),
-                                    args.value_of("rabbitmq-routing-key").unwrap(),
-                                    QueueBindOptions::default(),
-                                    FieldTable::default(),
-                                );
                                 channel
                                     .basic_consume(
                                         &queue,
-                                        "",
+                                        args.value_of("rabbitmq-consumer-tag").unwrap(),
                                         BasicConsumeOptions::default(),
                                         FieldTable::default(),
-                                    )
-                                    .and_then(|consumer| {
-                                        // Copies every task from collection to redis
-                                        consumer.for_each(move |msg| {
-                                            let received_task = Task::deserialise(msg.data);
-                                            let add_res: RedisResult<u32> = connection.sadd(
-                                                args.value_of("redis-set").unwrap(),
-                                                &received_task,
-                                            );
-                                            if let Ok(_s) = add_res {
-                                                channel.basic_ack(msg.delivery_tag, false)
-                                            } else {
-                                                channel.basic_reject(
-                                                    msg.delivery_tag,
-                                                    BasicRejectOptions::default(), //TODO
-                                                )
-                                            }
-                                        })
+                                    ).and_then(|consumer| {
+                                    // Copies every task from collection to redis
+                                    consumer.for_each(move |msg| {
+                                        let received_task = Task::deserialise(msg.data);
+                                        let add_res: RedisResult<u32> = connection.sadd(
+                                            args.value_of("redis-set").unwrap(),
+                                            &received_task,
+                                        );
+                                        if let Ok(_s) = add_res {
+                                            channel.basic_ack(msg.delivery_tag, false)
+                                        } else {
+                                            channel.basic_reject(
+                                                msg.delivery_tag,
+                                                BasicRejectOptions::default(), //TODO
+                                            )
+                                        }
                                     })
+                                })
                             })
                     })
                 }),
             )
-            .wait_future()
-            .expect("Could not connect to rabbitMQ");
+                .wait_future()
+                .expect("Could not connect to rabbitMQ");
         }
         Err(_) => eprintln!("Could not connect to redis"),
     }

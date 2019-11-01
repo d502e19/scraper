@@ -1,5 +1,6 @@
-use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRedisArgs, Value};
 use std::str::from_utf8;
+
+use redis::{FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
 
 #[derive(Hash, Eq, Debug)]
 pub struct Task {
