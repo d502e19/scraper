@@ -20,8 +20,8 @@ use crate::errors::ManagerErrorKind::UnreachableError;
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
     fn write_redis_args<W>(&self, out: &mut W)
-    where
-        W: ?Sized + RedisWrite,
+        where
+            W: ?Sized + RedisWrite,
     {
         out.write_arg(self.url.as_str().as_bytes())
     }
@@ -61,17 +61,11 @@ impl RMQRedisManager {
         queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
-        // FIXME; use loglevel = info to allow this block
-        {
-            println!("Creating RMQRedisManager with following values:");
-            println!("\taddr: {:?}", addr);
-            println!("\trmq_port: {:?}", rmq_port);
-            println!("\tredis_port: {:?}", redis_port);
-            println!("\trmq_exchange: {:?}", exchange);
-            println!("\trmq_routing_key: {:?}", routing_key);
-            println!("\trmq_queue_name: {:?}", queue_name);
-            println!("\tredis_set: {:?}", redis_set);
-        }
+        debug!("Creating RMQRedisManager with following values: \n\taddr: {:?}\n\trmq_port: {:?}\
+            \n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\trmq_routing_key: {:?}\
+            \n\trmq_queue_name: {:?}\n\tredis_set: {:?}"
+              , addr, rmq_port, redis_port, exchange, routing_key, queue_name, redis_set);
+
         let client = Client::connect(
             format!("amqp://{}:{}/%2f", addr, rmq_port).as_str(),
             ConnectionProperties::default(),
@@ -130,8 +124,8 @@ impl Manager for RMQRedisManager {
     }
 
     fn start_listening<F>(&self, f: F)
-    where
-        F: Fn(Task) -> TaskProcessResult,
+        where
+            F: Fn(Task) -> TaskProcessResult,
     {
         self.channel
             .basic_consume(
