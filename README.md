@@ -18,7 +18,9 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -a, --addr <ADDR>                Specify the manager's address [env: SCRAPER_MANAGER_ADDRESS=]  [default: localhost]
+    -o, --log-level <LEVEL>          Specify the log level {error, warn, info, debug, trace, off} [env: LOG_LEVEL=]
+                                     [default: info]
+    -l, --log-path <PATH>            Specify the log-file path [env: LOG_PATH=]  [default: worker.log]
     -e, --rmq-exchange <EXCHANGE>    Specify the RabbitMQ exchange to connect to [env: SCRAPER_RABBITMQ_EXCHANGE=]
                                      [default: work]
     -p, --rmq-port <PORT>            Specify the RabbitMQ port to connect to [env: SCRAPER_RABBITMQ_PORT=]  [default:
@@ -27,9 +29,11 @@ OPTIONS:
                                      frontier]
     -k, --rmq-routing-key <KEY>      Specify the RabbitMQ routing-key to connect to [env: SCRAPER_RABBITMQ_ROUTING_KEY=]
                                      [default: ]
+    -b, --redis-addr <ADDR>          Specify the Redis address [env: SCRAPER_REDIS_ADDRESS=]  [default: localhost]
     -r, --redis-port <PORT>          Specify the redis-port to connect to [env: SCRAPER_REDIS_PORT=]  [default: 6379]
     -s, --redis-set <SET>            Specify the redis set to connect to [env: SCRAPER_REDIS_SET=]  [default:
                                      collection]
+    -a, --rmq-addr <ADDR>            Specify the RabbitMQ address [env: SCRAPER_RMQ_ADDRESS=]  [default: localhost]
 ```
 
 

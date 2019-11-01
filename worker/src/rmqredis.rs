@@ -40,8 +40,9 @@ impl FromRedisValue for Task {
 }
 
 pub struct RMQRedisManager {
-    addr: String,
+    rmq_addr: String,
     rmq_port: u16,
+    redis_addr: String,
     redis_port: u16,
     channel: Channel,
     queue: Queue,
@@ -52,21 +53,22 @@ pub struct RMQRedisManager {
 
 impl RMQRedisManager {
     pub fn new(
-        addr: String,
+        rmq_addr: String,
         rmq_port: u16,
+        redis_addr: String,
         redis_port: u16,
         exchange: String,
         routing_key: String,
         queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
-        debug!("Creating RMQRedisManager with following values: \n\taddr: {:?}\n\trmq_port: {:?}\
-            \n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\trmq_routing_key: {:?}\
+        debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
+            \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\trmq_routing_key: {:?}\
             \n\trmq_queue_name: {:?}\n\tredis_set: {:?}"
-              , addr, rmq_port, redis_port, exchange, routing_key, queue_name, redis_set);
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, routing_key, queue_name, redis_set);
 
         let client = Client::connect(
-            format!("amqp://{}:{}/%2f", addr, rmq_port).as_str(),
+            format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
             ConnectionProperties::default(),
         ).wait().map_err(|_| ())?;
 
@@ -94,8 +96,9 @@ impl RMQRedisManager {
         ).wait().map_err(|_| ())?;
 
         Ok(RMQRedisManager {
-            addr,
+            rmq_addr,
             rmq_port,
+            redis_addr,
             redis_port,
             channel,
             queue,
@@ -161,7 +164,7 @@ impl Manager for RMQRedisManager {
 
     fn contains(&self, task: &Task) -> ManagerResult<bool> {
         let client_result =
-            redis::Client::open(format!("redis://{}:{}/", self.addr, self.redis_port).as_str());
+            redis::Client::open(format!("redis://{}:{}/", self.rmq_addr, self.redis_port).as_str());
         if let Ok(client) = client_result {
             if let Ok(mut con) = client.get_connection() {
                 let found_result = con.sismember(self.redis_set.as_str(), task);
