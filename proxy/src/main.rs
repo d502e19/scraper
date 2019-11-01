@@ -9,10 +9,10 @@ use std::error::Error;
 use clap::{App, Arg};
 use futures::future::Future;
 use futures::stream::Stream;
-use lapin_futures::{Client, ConnectionProperties};
 use lapin_futures::options::{BasicConsumeOptions, BasicRejectOptions, QueueDeclareOptions};
 use lapin_futures::types::FieldTable;
-use redis::{RedisResult, Commands};
+use lapin_futures::{Client, ConnectionProperties};
+use redis::{Commands, RedisResult};
 
 use crate::task::Task;
 
@@ -83,9 +83,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("redis-address").unwrap(),
             args.value_of("redis-port").unwrap()
         )
-            .as_str(),
+        .as_str(),
     )
-        .unwrap();
+    .unwrap();
     let con = client.get_connection();
     match con {
         Ok(mut connection) => {
@@ -96,8 +96,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     args.value_of("redis-address").unwrap(),
                     args.value_of("redis-port").unwrap()
                 )
-                    .as_str()
-                    .into()
+                .as_str()
+                .into()
             });
             futures::executor::spawn(
                 Client::connect(&addr, ConnectionProperties::default()).and_then(|client| {
@@ -116,30 +116,31 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         args.value_of("rabbitmq-consumer-tag").unwrap(),
                                         BasicConsumeOptions::default(),
                                         FieldTable::default(),
-                                    ).and_then(|consumer| {
-                                    // Copies every task from collection to redis
-                                    consumer.for_each(move |msg| {
-                                        let received_task = Task::deserialise(msg.data);
-                                        let add_res: RedisResult<u32> = connection.sadd(
-                                            args.value_of("redis-set").unwrap(),
-                                            &received_task,
-                                        );
-                                        if let Ok(_s) = add_res {
-                                            channel.basic_ack(msg.delivery_tag, false)
-                                        } else {
-                                            channel.basic_reject(
-                                                msg.delivery_tag,
-                                                BasicRejectOptions::default(), //TODO
-                                            )
-                                        }
+                                    )
+                                    .and_then(|consumer| {
+                                        // Copies every task from collection to redis
+                                        consumer.for_each(move |msg| {
+                                            let received_task = Task::deserialise(msg.data);
+                                            let add_res: RedisResult<u32> = connection.sadd(
+                                                args.value_of("redis-set").unwrap(),
+                                                &received_task,
+                                            );
+                                            if let Ok(_s) = add_res {
+                                                channel.basic_ack(msg.delivery_tag, false)
+                                            } else {
+                                                channel.basic_reject(
+                                                    msg.delivery_tag,
+                                                    BasicRejectOptions::default(), //TODO
+                                                )
+                                            }
+                                        })
                                     })
-                                })
                             })
                     })
                 }),
             )
-                .wait_future()
-                .expect("Could not connect to rabbitMQ");
+            .wait_future()
+            .expect("Could not connect to rabbitMQ");
         }
         Err(_) => eprintln!("Could not connect to redis"),
     }
