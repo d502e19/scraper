@@ -3,12 +3,10 @@ use std::io::{BufRead, BufReader, Write};
 
 use crate::task::Task;
 use crate::traits::Filter;
-use std::env::args;
 
-//TODO add error(handling)
 //TODO add impl for other filters, and use these in main if parser arguments is set
 
-/* These structs will be used at a later point when worker can accept multiple different filters
+/* FIXME These structs will be used at a later point when worker can accept multiple different filters
 /// Functions as a filter but is doing nothing
 pub(crate) struct NoFilter;
 impl Filter for NoFilter { fn filter(&self, task: &Task) -> bool {true} }
@@ -18,8 +16,6 @@ pub(crate) struct Blacklist {
     urls: Vec<String>,
     path: String,
 }*/
-
-
 
 /// Contains a Vec of all the entries in the whitelist.txt and path to this
 pub(crate) struct Whitelist {
@@ -43,11 +39,10 @@ impl Whitelist {
         let file = File::open(path).unwrap(); // handle unwrap better
         let buf = BufReader::new(file);
 
-        let data: Vec<String> = buf.lines()
+        let data: Vec<String> = buf
+            .lines()
             .map(|l| l.unwrap())
-            .map(|l| {
-                l.trim().to_string()
-            })
+            .map(|l| l.trim().to_string())
             .collect();
 
         return data;
@@ -60,15 +55,15 @@ impl Whitelist {
 
         // If url is not in the whitelist file, append it to the whitelist file
         if !Whitelist::read_from_whitelist_file(path).contains(&shortened_url) {
-
             // Open whitelist file
-            let mut file = OpenOptions::new().append(true)
+            let mut file = OpenOptions::new()
+                .append(true)
                 .open("src/filter/whitelist.txt")
                 .expect("cannot open whitelist file");
 
             // Write url to whitelist file, with newline
-            file.write(format!("\n{}", shortened_url).as_bytes()).
-                expect("write to whitelist file failed");
+            file.write(format!("\n{}", shortened_url).as_bytes())
+                .expect("write to whitelist file failed");
 
             return true;
         }
@@ -80,10 +75,11 @@ impl Whitelist {
 impl Filter for Whitelist {
     /// Takes a task and returns true if the task's url exists in whitelist file, else false
     fn filter(&self, task: &Task) -> bool {
-
         /* FIXME: Hotfix to allow using no filter at all. This field in struct will be removed at later point,
-           if-statement placed here before rest of logic in function to ease the removal of hotfix later on*/
-        if !self.activated {return true;}
+        if-statement placed here before rest of logic in function to ease the removal of hotfix later on*/
+        if !self.activated {
+            return true;
+        }
 
         // If there is a host string assign this to host-url, else return false
         if let Some(host_url) = task.url.host_str() {
@@ -100,7 +96,10 @@ impl Filter for Whitelist {
             return false;
         }
         // If no host url in task, e.g if task is an email address, return false
-        eprintln!("[filter] Not possible to find host url in task url: {}", task.url);
+        eprintln!(
+            "[filter] Not possible to find host url in task url: {}",
+            task.url
+        );
         return false;
     }
 }
