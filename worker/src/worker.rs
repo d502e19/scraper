@@ -1,9 +1,9 @@
+use std::collections::HashSet;
 use std::marker::PhantomData;
+use url::Url;
 
 use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult, Normaliser, Filter};
 use crate::task::Task;
-use std::collections::HashSet;
-use url::Url;
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
@@ -60,26 +60,25 @@ where
     /// Resolving includes downloading, extracting, archiving, and submitting new tasks.
     /// This is a blocking operation.
     pub fn start(&self) {
-        println!("Worker {} has started", self.name);
+        info!("Worker {} has started", self.name);
         self.manager.start_listening(move |task| {
-            println!("Worker {} received task {}", self.name, task.url);
-            // TODO: Proper error handling
+            info!("Worker {} received task {}", self.name, task.url);
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
-                    eprintln!("{} failed to download a page.", self.name);
+                    error!("{} failed to download a page. {}", self.name, e);
                     TaskProcessResult::Err
                 }
                 Ok(page) => {
                     match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
-                            eprintln!("{} failed to extract data from page.", self.name);
+                            error!("{} failed to extract data from page. {}", self.name, e);
                             TaskProcessResult::Err
                         }
                         Ok((mut urls, data)) => {
                             // Archiving
                             for datum in data {
                                 if let Err(e) = self.archive.archive_content(datum) {
-                                    eprintln!("{} failed archiving some data.", self.name);
+                                    error!("{} failed archiving some data. {}", self.name, e);
                                     return TaskProcessResult::Err;
                                 }
                             }
@@ -93,9 +92,9 @@ where
                                     match self.normaliser.normalise(url) {
                                         Ok(normalised_url) => Some(normalised_url),
                                         Err(e) => {
-                                            eprintln!("{} failed to normalise {}, {}", self.name, url_as_str, e);
+                                            error!("{} failed to normalise {}, {}", self.name, url_as_str, e);
                                             None
-                                        },
+                                        }
                                     }
                                 })
                                 .collect::<HashSet<Url>>()
@@ -105,21 +104,21 @@ where
 
                             // Check if extracted tasks are new, if they are, submit them
                             for task in &tasks {
-                                if self.filter.filter(task) {
-                                    if let Ok(exists) = self.manager.contains(task) {
-                                        if !exists {
-                                            if let Err(_) = self.manager.submit_task(task) {
-                                                eprintln!("{} failed submitting a new task to the manager.", self.name);
-                                                return TaskProcessResult::Err;
+                                if self.filter.filter(&task) {
+                                    match self.manager.contains(task) {
+                                        Ok(exists) => {
+                                            if !exists {
+                                                if let Err(e) = self.manager.submit_task(task) {
+                                                    error!("{} failed submitting a new task to the manager. {}", self.name, e);
+                                                    return TaskProcessResult::Err;
+                                                }
                                             }
                                         }
-                                    } else {
-                                        eprintln!("{} failed to check if a new task is present in the collection. Ignoring that task.", self.name);
-                                        return TaskProcessResult::Err;
+                                        Err(e) => {
+                                            error!("{} failed to check if a new task is present in the collection. Ignoring that task. {}", self.name, e);
+                                            return TaskProcessResult::Err;
+                                        }
                                     }
-                                } else {
-                                    eprintln!("Ignoring task because the url of the task is not in whitelist.txt file: {}", task.url);
-                                    return TaskProcessResult::Err;
                                 }
                             }
 
@@ -131,3 +130,4 @@ where
         });
     }
 }
+
