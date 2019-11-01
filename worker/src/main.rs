@@ -9,14 +9,15 @@ use std::error::Error;
 
 use clap::{App, Arg};
 
+use crate::defaultnormaliser::DefaultNormaliser;
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
+use crate::filter::filter::Whitelist;
+use crate::filter::filter::NoFilter;
 use crate::rmqredis::RMQRedisManager;
 use crate::task::Task;
 use crate::void::Void;
 use crate::worker::Worker;
-use crate::filter::filter::Whitelist;
-use crate::defaultnormaliser::DefaultNormaliser;
 
 mod downloader;
 mod extractor;
@@ -93,6 +94,30 @@ fn main() -> Result<(), Box<dyn Error>> {
             .default_value("collection")
             .value_name("SET")
             .help("Specify the redis set to connect to")
+    ).arg(
+        Arg::with_name("filter-enable")
+            .short("f")
+            .long("filter-enable")
+            .env("SCRAPER_FILTER_ENABLE")
+            .default_value("false")
+            .value_name("BOOLEAN")
+            .help("Specify whether filtering is enabled")
+    ).arg(
+        Arg::with_name("filter-path")
+            .short("p")
+            .long("filter-path")
+            .env("SCRAPER_FILTER_PATH")
+            .default_value("src/filter/whitelist.txt")
+            .value_name("PATH")
+            .help("Specify path to list for filtering")
+    ).arg(
+        Arg::with_name("filter-type")
+            .short("t")
+            .long("filter-type")
+            .env("SCRAPER_FILTER_TYPE")
+            .default_value("white")
+            .value_name("STRING")
+            .help("Specify whether the list in the given filter-path is a 'white' or 'black'-list")
     ).get_matches();
 
     // Construct a worker and its components
@@ -107,7 +132,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     ).expect("Failed to construct RMQRedisManager");
     let downloader = DefaultDownloader::new();
     let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
-    let filter = Whitelist::new();
+    if args.value_of("filter-enable").unwrap().parse().unwrap() {
+        let filter = Whitelist::new(args.value_of("filter-path").unwrap().to_string());
+    } else { let filter: NoFilter = NoFilter; }
     let normaliser = DefaultNormaliser;
     let archive = Void;
     let worker = Worker::new("W1".to_string(), manager, downloader, extractor, normaliser, archive, filter);
