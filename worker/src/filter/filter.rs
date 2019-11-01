@@ -3,26 +3,37 @@ use std::io::{BufRead, BufReader, Write};
 
 use crate::task::Task;
 use crate::traits::Filter;
+use std::env::args;
 
+//TODO add error(handling)
+//TODO add impl for other filters, and use these in main if parser arguments is set
+
+/* These structs will be used at a later point when worker can accept multiple different filters
 /// Functions as a filter but is doing nothing
 pub(crate) struct NoFilter;
-
 impl Filter for NoFilter { fn filter(&self, task: &Task) -> bool {true} }
 
-
-/// Contains a Vec of all the entries in the whitelist.txt
-pub(crate) struct Whitelist {
-    whitelist: Vec<String>,
+/// Contains a Vec of all the entries in the blacklist.txt
+pub(crate) struct Blacklist {
+    urls: Vec<String>,
     path: String,
+}*/
+
+
+
+/// Contains a Vec of all the entries in the whitelist.txt and path to this
+pub(crate) struct Whitelist {
+    urls: Vec<String>,
+    path: String,
+    activated: bool,
 }
 
-//TODO arg for not using whitelist
-//TODO add error(handling)
 impl Whitelist {
-    pub fn new(path: String) -> Self {
+    pub fn new(path: String, activated: bool) -> Self {
         Whitelist {
-            whitelist: Whitelist::read_from_whitelist_file(path),
+            urls: Whitelist::read_from_whitelist_file((&path).to_string()),
             path,
+            activated,
         }
     }
 
@@ -32,7 +43,7 @@ impl Whitelist {
         let file = File::open(path).unwrap(); // handle unwrap better
         let buf = BufReader::new(file);
 
-        let mut data: Vec<String> = buf.lines()
+        let data: Vec<String> = buf.lines()
             .map(|l| l.unwrap())
             .map(|l| {
                 l.trim().to_string()
@@ -69,12 +80,17 @@ impl Whitelist {
 impl Filter for Whitelist {
     /// Takes a task and returns true if the task's url exists in whitelist file, else false
     fn filter(&self, task: &Task) -> bool {
+
+        /* FIXME: Hotfix to allow using no filter at all. This field in struct will be removed at later point,
+           if-statement placed here before rest of logic in function to ease the removal of hotfix later on*/
+        if !self.activated {return true;}
+
         // If there is a host string assign this to host-url, else return false
         if let Some(host_url) = task.url.host_str() {
             let host_url = host_url.to_string();
             /* Iterates through whitelist and sees if the host_url contains a substring of any
             entry in the whitelist, therefore all paths and sub-domains*/
-            for url in &self.whitelist {
+            for url in &self.urls {
                 if host_url.contains(url) {
                     return true;
                 }

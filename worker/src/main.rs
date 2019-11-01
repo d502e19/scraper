@@ -13,7 +13,6 @@ use crate::defaultnormaliser::DefaultNormaliser;
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
 use crate::filter::filter::Whitelist;
-use crate::filter::filter::NoFilter;
 use crate::rmqredis::RMQRedisManager;
 use crate::task::Task;
 use crate::void::Void;
@@ -104,7 +103,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .help("Specify whether filtering is enabled")
     ).arg(
         Arg::with_name("filter-path")
-            .short("p")
+            .short("w")
             .long("filter-path")
             .env("SCRAPER_FILTER_PATH")
             .default_value("src/filter/whitelist.txt")
@@ -132,9 +131,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     ).expect("Failed to construct RMQRedisManager");
     let downloader = DefaultDownloader::new();
     let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
-    if args.value_of("filter-enable").unwrap().parse().unwrap() {
-        let filter = Whitelist::new(args.value_of("filter-path").unwrap().to_string());
-    } else { let filter: NoFilter = NoFilter; }
+    let filter = Whitelist::new(
+        args.value_of("filter-path").unwrap().to_string(),
+        args.value_of("filter-enable").unwrap().parse().unwrap());
     let normaliser = DefaultNormaliser;
     let archive = Void;
     let worker = Worker::new("W1".to_string(), manager, downloader, extractor, normaliser, archive, filter);
