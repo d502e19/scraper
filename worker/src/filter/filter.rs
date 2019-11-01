@@ -4,18 +4,90 @@ use std::io::{BufRead, BufReader, Write};
 use crate::task::Task;
 use crate::traits::Filter;
 
-//TODO add impl for other filters, and use these in main if parser arguments is set
-// FIXME restructure code, no writes
-/* FIXME These structs will be used at a later point when worker can accept multiple different filters
-/// Functions as a filter but is doing nothing
+/// Functions as a filter but is doing nothing, thereby allowing all urls to be visited
 pub(crate) struct NoFilter;
-impl Filter for NoFilter { fn filter(&self, task: &Task) -> bool {true} }
+impl Filter for NoFilter {
+    fn filter(&self, task: &Task) -> bool {
+        true
+    }
+}
 
 /// Contains a Vec of all the entries in the blacklist.txt
 pub(crate) struct Blacklist {
     urls: Vec<String>,
-    path: String,
-}*/
+}
+
+impl Blacklist {
+    /// Constructor for blacklist struct. Automatically reads from path and puts urls into struct
+    pub fn new(path: String, activated: bool) -> Self {
+        Blacklist {
+            urls: read_from_filter_file((&path).to_string()),
+        }
+    }
+}
+
+impl Filter for Blacklist {
+    /// Takes a task and returns false if the task's url exists in blacklist file, else true
+    fn filter(&self, task: &Task) -> bool {
+        // If there is a host string assign this to host-url, else return false
+        if let Some(host_url) = task.url.host_str() {
+            let host_url = host_url.to_string();
+            /* Iterates through whitelist and sees if the host_url contains a substring of any
+            entry in the whitelist, therefore all paths and sub-domains*/
+            for url in &self.urls {
+                if host_url.contains(url) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        // If no host url in task, e.g if task is an email address, return false
+        return false;
+    }
+}
+
+/// Contains a Vec of all the entries in the whitelist.txt and path to this file
+pub(crate) struct Whitelist {
+    urls: Vec<String>,
+    activated: bool,
+}
+
+impl Whitelist {
+    /// Constructor for whitelist struct. Automatically reads from path and puts urls into struct
+    pub fn new(path: String, activated: bool) -> Self {
+        Whitelist {
+            urls: read_from_filter_file((&path).to_string()),
+            activated,
+        }
+    }
+}
+
+impl Filter for Whitelist {
+    /// Takes a task and returns true if the task's url exists in whitelist file, else false
+    fn filter(&self, task: &Task) -> bool {
+        /* FIXME: Hotfix to allow using no filter at all. If "filter-enable" is set to false in parser argument,
+        this function just returns true. This field in struct will be removed at later point,
+        if-statement placed here before rest of logic in function to ease the removal of hotfix later on*/
+        if !self.activated {
+            return true;
+        }
+
+        // If there is a host string assign this to host-url, else return false
+        if let Some(host_url) = task.url.host_str() {
+            let host_url = host_url.to_string();
+            /* Iterates through whitelist and sees if the host_url contains a substring of any
+            entry in the whitelist, therefore all paths and sub-domains*/
+            for url in &self.urls {
+                if host_url.contains(url) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        // If no host url in task, e.g if task is an email address, return false
+        return false;
+    }
+}
 
 /// Reads from file and returns the entries as a Vec.
 /// Called by the new() on filter struct
@@ -54,48 +126,4 @@ fn write_to_filter_file(url: String, path: String) -> bool {
     }
     // Return false if url already is in the file
     return false;
-}
-
-/// Contains a Vec of all the entries in the whitelist.txt and path to this file
-pub(crate) struct Whitelist {
-    urls: Vec<String>,
-    path: String,
-    activated: bool,
-}
-
-impl Whitelist {
-    pub fn new(path: String, activated: bool) -> Self {
-        Whitelist {
-            urls: read_from_filter_file((&path).to_string()),
-            path,
-            activated,
-        }
-    }
-}
-
-impl Filter for Whitelist {
-    /// Takes a task and returns true if the task's url exists in whitelist file, else false
-    fn filter(&self, task: &Task) -> bool {
-        /* FIXME: Hotfix to allow using no filter at all. If "filter-enable" is set to false in parser argument,
-        this function just returns true. This field in struct will be removed at later point,
-        if-statement placed here before rest of logic in function to ease the removal of hotfix later on*/
-        if !self.activated {
-            return true;
-        }
-
-        // If there is a host string assign this to host-url, else return false
-        if let Some(host_url) = task.url.host_str() {
-            let host_url = host_url.to_string();
-            /* Iterates through whitelist and sees if the host_url contains a substring of any
-            entry in the whitelist, therefore all paths and sub-domains*/
-            for url in &self.urls {
-                if host_url.contains(url) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        // If no host url in task, e.g if task is an email address, return false
-        return false;
-    }
 }
