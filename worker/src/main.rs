@@ -201,7 +201,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("filter-enable").unwrap().parse().unwrap());
         let normaliser = DefaultNormaliser;
         let archive = Void;
-        let worker = Worker::new("W1".to_string(), manager, downloader, extractor, normaliser, archive, filter);
+        let worker = Worker::new(
+            "W1",
+            Box::new(manager),
+            Box::new(downloader),
+            Box::new(extractor),
+            Box::new(normaliser),
+            Box::new(archive),
+            Box::new(filter),
+        );
         worker.start();
 
         Ok(())

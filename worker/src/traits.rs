@@ -8,9 +8,7 @@ use crate::task::Task;
 pub trait Manager {
     fn submit_task(&self, task: &Task) -> ManagerResult<()>;
 
-    fn start_listening<F>(&self, f: F)
-        where
-        F: Fn(Task) -> TaskProcessResult;
+    fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult);
 
     fn close(self) -> ManagerResult<()>;
 
@@ -20,9 +18,7 @@ pub trait Manager {
 pub trait Frontier {
     fn submit_task(&self, task: &Task) -> ManagerResult<()>;
 
-    fn start_listening<F>(&self, f: F)
-        where
-        F: Fn(Task) -> TaskProcessResult;
+    fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult);
 
     fn close(self) -> ManagerResult<()>;
 }
