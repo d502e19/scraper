@@ -22,7 +22,7 @@ use log::LevelFilter;
 use crate::defaultnormaliser::DefaultNormaliser;
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
-use crate::filter::filter::Whitelist;
+use crate::filter::filter::{Whitelist, Blacklist, NoFilter};
 use crate::rmqredis::RMQRedisManager;
 use crate::task::Task;
 use crate::void::Void;
@@ -196,9 +196,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         ).expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
-        let filter = Whitelist::new(
-            args.value_of("filter-path").unwrap().to_string(),
-            args.value_of("filter-enable").unwrap().parse().unwrap());
+        let filter =
+            if args.value_of("filter-enable").unwrap().parse().unwrap() {
+                match args.value_of("filter-type").unwrap() {
+                    "white" => { Whitelist::new(args.value_of("filter-path").unwrap().to_string()) }
+                    "black" => { Blacklist::new(args.value_of("filter-path").unwrap().to_string()) }
+                    _ => { "nibba you spelled wrong" }
+                }
+        } else { NoFilter };
         let normaliser = DefaultNormaliser;
         let archive = Void;
         let worker = Worker::new(

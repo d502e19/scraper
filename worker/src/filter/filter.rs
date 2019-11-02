@@ -19,7 +19,7 @@ pub(crate) struct Blacklist {
 
 impl Blacklist {
     /// Constructor for blacklist struct. Automatically reads from path and puts urls into struct
-    pub fn new(path: String, activated: bool) -> Self {
+    pub fn new(path: String) -> Self {
         Blacklist {
             urls: read_from_filter_file((&path).to_string()),
         }
@@ -49,15 +49,13 @@ impl Filter for Blacklist {
 /// Contains a Vec of all the entries in the whitelist.txt and path to this file
 pub(crate) struct Whitelist {
     urls: Vec<String>,
-    activated: bool,
 }
 
 impl Whitelist {
     /// Constructor for whitelist struct. Automatically reads from path and puts urls into struct
-    pub fn new(path: String, activated: bool) -> Self {
+    pub fn new(path: String) -> Self {
         Whitelist {
             urls: read_from_filter_file((&path).to_string()),
-            activated,
         }
     }
 }
@@ -65,13 +63,6 @@ impl Whitelist {
 impl Filter for Whitelist {
     /// Takes a task and returns true if the task's url exists in whitelist file, else false
     fn filter(&self, task: &Task) -> bool {
-        /* FIXME: Hotfix to allow using no filter at all. If "filter-enable" is set to false in parser argument,
-        this function just returns true. This field in struct will be removed at later point,
-        if-statement placed here before rest of logic in function to ease the removal of hotfix later on*/
-        if !self.activated {
-            return true;
-        }
-
         // If there is a host string assign this to host-url, else return false
         if let Some(host_url) = task.url.host_str() {
             let host_url = host_url.to_string();
