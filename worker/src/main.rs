@@ -27,6 +27,7 @@ use crate::rmqredis::RMQRedisManager;
 use crate::task::Task;
 use crate::void::Void;
 use crate::worker::Worker;
+use crate::traits::Filter;
 
 mod downloader;
 mod extractor;
@@ -125,7 +126,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .default_value("collection")
             .value_name("SET")
             .help("Specify the redis set to connect to")
-    ).arg (
+    ).arg(
         Arg::with_name("log-path")
             .short("l")
             .long("log-path")
@@ -196,14 +197,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         ).expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
-        let filter =
-            if args.value_of("filter-enable").unwrap().parse().unwrap() {
-                match args.value_of("filter-type").unwrap() {
-                    "white" => { Whitelist::new(args.value_of("filter-path").unwrap().to_string()) }
-                    "black" => { Blacklist::new(args.value_of("filter-path").unwrap().to_string()) }
-                    _ => { "nibba you spelled wrong" }
-                }
-        } else { NoFilter };
+        let filter: Box<dyn Filter> = if args.value_of("filter-enable").unwrap().parse().unwrap() {
+            match args.value_of("filter-type").unwrap() {
+                "black" => { Box::new(Blacklist::new(args.value_of("filter-path").unwrap().to_string())) }
+                "white" | _ => { Box::new(Whitelist::new(args.value_of("filter-path").unwrap().to_string())) }
+            }
+        } else { Box::new(NoFilter) };
         let normaliser = DefaultNormaliser;
         let archive = Void;
         let worker = Worker::new(
@@ -213,7 +212,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Box::new(extractor),
             Box::new(normaliser),
             Box::new(archive),
-            Box::new(filter),
+            filter,
         );
         worker.start();
 
