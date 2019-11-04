@@ -7,6 +7,7 @@ use reqwest::Client;
 use crate::errors::{DownloadError, DownloadErrorKind, DownloadResult};
 use crate::task::Task;
 use crate::traits::Downloader;
+use crate::errors::DownloadErrorKind::{InvalidPage, NetworkError};
 
 /// A struct to access functions in downloader file
 /// Contains a reqwest client to send http requests
@@ -33,10 +34,10 @@ impl Downloader<Vec<u8>> for DefaultDownloader {
                     // If successful return the vec with bytes
                     Ok(_) => Ok(body),
                     // Otherwise error
-                    Err(e) => Err(DownloadError::new(DownloadErrorKind::InvalidPage, String::from("Could not read downloaded page"), Some(Box::new(e)))),
+                    Err(e) => Err(DownloadError::new(InvalidPage, "Could not read downloaded page", Some(Box::new(e)))),
                 }
             }
-            Err(e) => Err(DownloadError::new(DownloadErrorKind::NetworkError, String::from("Failed to download page"), Some(Box::new(e)))),
+            Err(e) => Err(DownloadError::new(NetworkError, "Failed to download page", Some(Box::new(e)))),
         }
     }
 }

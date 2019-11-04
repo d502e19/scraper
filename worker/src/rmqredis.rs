@@ -15,6 +15,7 @@ use url::Url;
 use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
 use crate::task::Task;
 use crate::traits::{Manager, TaskProcessResult};
+use crate::errors::ManagerErrorKind::UnreachableError;
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
@@ -122,7 +123,7 @@ impl Manager for RMQRedisManager {
             )
             .wait();
 
-        result.map_err(|e| ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), Some(Box::new(e))))
+        result.map_err(|e| ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))
     }
 
     fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
@@ -170,6 +171,6 @@ impl Manager for RMQRedisManager {
                 }
             }
         }
-        Err(ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), None))
+        Err(ManagerError::new(UnreachableError, "Could not reach manager.", None))
     }
 }
