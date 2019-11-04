@@ -164,7 +164,7 @@ impl Manager for RMQRedisManager {
 
     fn contains(&self, task: &Task) -> ManagerResult<bool> {
         let client_result =
-            redis::Client::open(format!("redis://{}:{}/", self.rmq_addr, self.redis_port).as_str());
+            redis::Client::open(format!("redis://{}:{}/", self.redis_addr, self.redis_port).as_str());
         if let Ok(client) = client_result {
             if let Ok(mut con) = client.get_connection() {
                 let found_result = con.sismember(self.redis_set.as_str(), task);
