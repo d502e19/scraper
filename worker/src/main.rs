@@ -197,12 +197,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         ).expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
-        let filter: Box<dyn Filter> = if args.value_of("filter-enable").unwrap().parse().unwrap() {
-            match args.value_of("filter-type").unwrap() {
-                "black" => { Box::new(Blacklist::new(args.value_of("filter-path").unwrap().to_string())) }
-                "white" | _ => { Box::new(Whitelist::new(args.value_of("filter-path").unwrap().to_string())) }
-            }
-        } else { Box::new(NoFilter) };
+        let filter: Box<dyn Filter> =
+            if args.value_of("filter-enable").unwrap().parse().unwrap() {
+                match args.value_of("filter-type").unwrap() {
+                    "black" => { Box::new(Blacklist::new(args.value_of("filter-path").unwrap().to_string())) }
+                    "white" | _ => { Box::new(Whitelist::new(args.value_of("filter-path").unwrap().to_string())) }
+                }
+            } else { Box::new(NoFilter) };
         let normaliser = DefaultNormaliser;
         let archive = Void;
         let worker = Worker::new(

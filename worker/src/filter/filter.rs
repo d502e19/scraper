@@ -12,7 +12,7 @@ impl Filter for NoFilter {
     }
 }
 
-/// Contains a Vec of all the entries in the blacklist.txt
+/// Contains a Vec of all the entries in the path given
 pub(crate) struct Blacklist {
     urls: Vec<String>,
 }
@@ -29,11 +29,11 @@ impl Blacklist {
 impl Filter for Blacklist {
     /// Takes a task and returns false if the task's url exists in blacklist file, else true
     fn filter(&self, task: &Task) -> bool {
-        // If there is a host string assign this to host-url, else return false
+        // Assign host url as string to variable if possible, else return true
         if let Some(host_url) = task.url.host_str() {
             let host_url = host_url.to_string();
-            /* Iterates through whitelist and sees if the host_url contains a substring of any
-            entry in the whitelist, therefore all paths and sub-domains*/
+            /* Iterates through blacklist and sees if the host_url contains a substring of any
+            entry in the list, therefore checks all paths and sub-domains*/
             for url in &self.urls {
                 if host_url.contains(url) {
                     return false;
@@ -41,12 +41,11 @@ impl Filter for Blacklist {
             }
             return true;
         }
-        // If no host url in task, e.g if task is an email address, return false
-        return false;
+        return true;
     }
 }
 
-/// Contains a Vec of all the entries in the whitelist.txt and path to this file
+/// Contains a Vec of all the entries in the path given
 pub(crate) struct Whitelist {
     urls: Vec<String>,
 }
@@ -81,9 +80,9 @@ impl Filter for Whitelist {
 }
 
 /// Reads from file and returns the entries as a Vec.
-/// Called by the new() on filter struct
+/// Called by the new() on filter structs
 fn read_from_filter_file(path: String) -> Vec<String> {
-    let file = File::open(path).unwrap(); // handle unwrap better
+    let file = File::open(path).unwrap(); //TODO handle unwrap better
     let buf = BufReader::new(file);
 
     let data: Vec<String> = buf
@@ -95,21 +94,21 @@ fn read_from_filter_file(path: String) -> Vec<String> {
     return data;
 }
 
-/// Appends a url to whitelist if it is not already in the whitelist
+/// Appends a url to a file, checks if it already exists before doing so
 /// Currently not used, but could have some use
 fn write_to_filter_file(url: String, path: String) -> bool {
     // Remove www. from url
     let shortened_url = url.replacen("www.", "", 1);
 
-    // If url is not in the whitelist file, append it to the whitelist file
+    // If url is not in the file, append it
     if read_from_filter_file((&path).to_string()).contains(&shortened_url) {
-        // Open whitelist file
+        // Open file
         let mut file = OpenOptions::new()
             .append(true)
             .open(path)
             .expect("cannot open file");
 
-        // Write url to whitelist file, with newline
+        // Write url to file, with newline
         file.write(format!("\n{}", shortened_url).as_bytes())
             .expect("write to file failed");
 
