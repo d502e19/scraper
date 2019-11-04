@@ -8,20 +8,13 @@ use crate::traits::{Archive, Downloader, Extractor, Manager, Normaliser, TaskPro
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
-pub struct Worker<M, L, E, N, A, S, D>
-    where
-        M: Manager,
-        L: Downloader<S>,
-        E: Extractor<S, D>,
-        N: Normaliser,
-        A: Archive<D>,
-{
+pub struct Worker<S, D> {
     name: String,
-    manager: M,
-    downloader: L,
-    extractor: E,
-    normaliser: N,
-    archive: A,
+    manager: Box<dyn Manager>,
+    downloader: Box<dyn Downloader<S>>,
+    extractor: Box<dyn Extractor<S, D>>,
+    normaliser: Box<dyn Normaliser>,
+    archive: Box<dyn Archive<D>>,
     // Phantom data markers are used to please the type checker about S and D.
     // Without it will believe that S and D are unused even though the determine the
     // type parameters of some of the components
@@ -29,18 +22,18 @@ pub struct Worker<M, L, E, N, A, S, D>
     _data_type_marker: PhantomData<D>,
 }
 
-impl<M, L, E, N, A, S, D> Worker<M, L, E, N, A, S, D>
-    where
-        M: Manager,
-        L: Downloader<S>,
-        E: Extractor<S, D>,
-        N: Normaliser,
-        A: Archive<D>,
-{
+impl<'a, S, D> Worker<S, D> {
     /// Create a new worker with the given components.
-    pub fn new(name: String, manager: M, downloader: L, extractor: E, normaliser: N, archive: A) -> Self {
+    pub fn new(
+        name: &str,
+        manager: Box<dyn Manager>,
+        downloader: Box<dyn Downloader<S>>,
+        extractor: Box<dyn Extractor<S, D>>,
+        normaliser: Box<dyn Normaliser>,
+        archive: Box<dyn Archive<D>>,
+    ) -> Self {
         Worker {
-            name,
+            name: String::from(name),
             manager,
             downloader,
             extractor,
@@ -56,7 +49,7 @@ impl<M, L, E, N, A, S, D> Worker<M, L, E, N, A, S, D>
     /// This is a blocking operation.
     pub fn start(&self) {
         info!("Worker {} has started", self.name);
-        self.manager.start_listening(move |task| {
+        self.manager.start_listening(&|task| {
             info!("Worker {} received task {}", self.name, task.url);
             match self.downloader.fetch_page(&task) {
                 Err(e) => {

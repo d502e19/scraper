@@ -172,7 +172,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
         let normaliser = DefaultNormaliser;
         let archive = Void;
-        let worker = Worker::new("W1".to_string(), manager, downloader, extractor, normaliser, archive);
+        let worker = Worker::new(
+            "W1",
+            Box::new(manager),
+            Box::new(downloader),
+            Box::new(extractor),
+            Box::new(normaliser),
+            Box::new(archive),
+        );
         worker.start();
 
         Ok(())
