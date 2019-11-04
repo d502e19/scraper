@@ -67,15 +67,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         .version("0.1.0")
         .author("d502e19@aau")
         .arg(
-            Arg::with_name("manager-address")
+            Arg::with_name("rmq-address")
                 .short("a")
-                .long("addr")
-                .env("SCRAPER_MANAGER_ADDRESS")
+                .long("rmq-addr")
+                .env("SCRAPER_RMQ_ADDRESS")
                 // Checks for system at compile-time, not runtime
                 .default_value(if cfg!(windows) { "192.168.99.100" } else { "localhost" })
                 .value_name("ADDR")
-                .help("Specify the manager's address")
+                .help("Specify the RabbitMQ address")
         ).arg(
+        Arg::with_name("redis-address")
+            .short("b")
+            .long("redis-addr")
+            .env("SCRAPER_REDIS_ADDRESS")
+            // Checks for system at compile-time, not runtime
+            .default_value(if cfg!(windows) { "192.168.99.100" } else { "localhost" })
+            .value_name("ADDR")
+            .help("Specify the Redis address")
+    ).arg(
         Arg::with_name("rabbitmq-port")
             .short("p")
             .long("rmq-port")
@@ -155,13 +164,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                 _ => LevelFilter::Off,
             })
     ) {
-        info!("Starting worker module using RabbitMQ and redis on {:?}",
-              args.value_of("manager-address").unwrap().to_string());
+        info!("Starting worker module using RabbitMQ({:?}) and redis({:?})",
+              args.value_of("rmq-address").unwrap().to_string(),
+              args.value_of("redis-address").unwrap().to_string());
 
         // Construct a worker and its components
         let manager = RMQRedisManager::new(
-            args.value_of("manager-address").unwrap().to_string(),
+            args.value_of("rmq-address").unwrap().to_string(),
             args.value_of("rabbitmq-port").unwrap().parse().unwrap(), // Parse str to u16
+            args.value_of("redis-address").unwrap().to_string(),
             args.value_of("redis-port").unwrap().parse().unwrap(), // Parse str to u16
             args.value_of("rabbitmq-exchange").unwrap().to_string(),
             args.value_of("rabbitmq-routing-key").unwrap().to_string(),
