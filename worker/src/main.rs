@@ -63,7 +63,7 @@ fn get_log4rs_config(log_path: &str, default_log_level: LevelFilter) -> log4rs::
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Set up arguments and get resulting arguments
-    let args = App::new("DatScraper")
+    let args = App::new("DatScraper Worker")
         .version("0.1.0")
         .author("d502e19@aau")
         .arg(
@@ -172,7 +172,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
         let normaliser = DefaultNormaliser;
         let archive = Void;
-        let worker = Worker::new("W1".to_string(), manager, downloader, extractor, normaliser, archive);
+        let worker = Worker::new(
+            "W1",
+            Box::new(manager),
+            Box::new(downloader),
+            Box::new(extractor),
+            Box::new(normaliser),
+            Box::new(archive),
+        );
         worker.start();
 
         Ok(())

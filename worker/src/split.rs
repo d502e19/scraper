@@ -23,11 +23,8 @@ impl<F: Frontier, S: Collection> Manager for SplitManager<F, S> {
         self.collection.submit_task(task)
     }
 
-    fn start_listening<G>(&self, f: G)
-    where
-        G: Fn(Task) -> TaskProcessResult,
-    {
-        self.frontier.start_listening(f)
+    fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
+        self.frontier.start_listening(resolve_func)
     }
 
     fn close(self) -> ManagerResult<()> {
