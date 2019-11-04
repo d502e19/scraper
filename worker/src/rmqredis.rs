@@ -125,10 +125,7 @@ impl Manager for RMQRedisManager {
         result.map_err(|e| ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), Some(Box::new(e))))
     }
 
-    fn start_listening<F>(&self, f: F)
-        where
-            F: Fn(Task) -> TaskProcessResult,
-    {
+    fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
         self.channel
             .basic_consume(
                 &self.queue,
@@ -139,7 +136,7 @@ impl Manager for RMQRedisManager {
             .and_then(move |consumer| {
                 consumer.for_each(move |delivery| {
                     let task = Task::deserialise(delivery.data);
-                    let result = f(task);
+                    let result = resolve_func(task);
                     match result {
                         TaskProcessResult::Ok => {
                             self.channel.basic_ack(delivery.delivery_tag, false)
