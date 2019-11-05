@@ -6,6 +6,7 @@ use url::Url;
 use crate::errors::{ExtractError, ExtractErrorKind, ExtractResult};
 use crate::task::Task;
 use crate::traits::Extractor;
+use crate::errors::ExtractErrorKind::ParsingError;
 
 pub struct HTMLExtractorBase<D, H: HTMLExtractor<D>> {
     _marker: PhantomData<D>,
@@ -18,7 +19,7 @@ where
 {
     fn extract_content(&self, content: Vec<u8>, url: &Url) -> ExtractResult<(Vec<Url>, Vec<D>)> {
         let html = String::from_utf8(content).map_err(|e| {
-            ExtractError::new(ExtractErrorKind::ParsingError, String::from("Failed to parse html"), Some(Box::new(e)))
+            ExtractError::new(ParsingError, "Failed to parse html", Some(Box::new(e)))
         })?;
         let document = Html::parse_document(html.as_str());
 
