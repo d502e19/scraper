@@ -6,6 +6,7 @@ use crate::traits::Filter;
 
 /// Functions as a filter but is doing nothing, thereby allowing all urls to be visited
 pub(crate) struct NoFilter;
+
 impl Filter for NoFilter {
     fn filter(&self, task: &Task) -> bool {
         true
@@ -21,7 +22,7 @@ impl Blacklist {
     /// Constructor for blacklist struct. Automatically reads from path and puts urls into struct
     pub fn new(path: String) -> Self {
         Blacklist {
-            urls: read_from_filter_file((&path).to_string()),
+            urls: read_filter_from_file((&path).to_string()),
         }
     }
 }
@@ -54,8 +55,11 @@ impl Whitelist {
     /// Constructor for whitelist struct. Automatically reads from path and puts urls into struct
     pub fn new(path: String) -> Self {
         Whitelist {
-            urls: read_from_filter_file((&path).to_string()),
+            urls: read_filter_from_file((&path).to_string()),
         }
+    }
+    pub fn new_from_vec(urls: Vec<String>) -> Self {
+        Whitelist { urls }
     }
 }
 
@@ -81,10 +85,11 @@ impl Filter for Whitelist {
 
 /// Reads from file and returns the entries as a Vec.
 /// Called by the new() on filter structs
-fn read_from_filter_file(path: String) -> Vec<String> {
-    let file = File::open(path).unwrap(); //TODO handle unwrap better
+fn read_filter_from_file(path: String) -> Vec<String> {
+    let file = File::open(&path).expect(format!("Could not open file: {:?}", &path).as_str());
     let buf = BufReader::new(file);
 
+    // Read each line from file, trim and collect them into a vector of strings
     let data: Vec<String> = buf
         .lines()
         .map(|l| l.unwrap())
@@ -101,7 +106,7 @@ fn write_to_filter_file(url: String, path: String) -> bool {
     let shortened_url = url.replacen("www.", "", 1);
 
     // If url is not in the file, append it
-    if read_from_filter_file((&path).to_string()).contains(&shortened_url) {
+    if read_filter_from_file((&path).to_string()).contains(&shortened_url) {
         // Open file
         let mut file = OpenOptions::new()
             .append(true)
@@ -116,4 +121,27 @@ fn write_to_filter_file(url: String, path: String) -> bool {
     }
     // Return false if url already is in the file
     return false;
+}
+
+//TODO; tests; check white- and black-list actually returns expected for predefined input
+#[cfg(test)]
+mod tests {
+    use url::Url;
+
+    use crate::filter::filter::Whitelist;
+    use crate::task::Task;
+    use crate::traits::Filter;
+
+    #[test]
+    fn pass() {
+        assert!(true);
+    }
+
+    #[test]
+    fn whitelist_test_01() {
+        let mut lists: Vec<String> = Vec::new();
+        lists.push("reddit.com".parse().unwrap());
+        let whitelist = Whitelist::new_from_vec(lists);
+        assert!(!whitelist.filter(&Task { url: Url::parse("http://rededit.com").unwrap() }))
+    }
 }
