@@ -13,9 +13,11 @@ impl Task {
 
     pub fn deserialise(data: Vec<u8>) -> ManagerResult<Self> {
         let data_to_string_res = String::from_utf8(data);
+        // checks if there is an error when changing data to a string
         match data_to_string_res {
             Ok(data) => {
                 let url_res = Url::parse(&data) ;
+                // checks if there is an error when parsing the url
                 match url_res {
                     Ok(url) => Ok(Task { url }),
                     Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, String::from("failed to deserialise"), Some(Box::new(e))))

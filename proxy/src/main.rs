@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                   FieldTable::default(), ).and_then(|consumer| {
                                 // copies every task from collection to redis
                                 consumer.for_each(move |msg| {
-                                    let task = Task::deserialise(msg.data);
+                                    let task = Task::deserialise(msg.data).unwrap();
                                     let add_res: RedisResult<u32> = connection.sadd("collection", &task);
                                     if let Ok(s) = add_res {
                                         channel.basic_ack(msg.delivery_tag, false)
