@@ -1,9 +1,6 @@
 use redis::{FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
 use std::io::{Error, ErrorKind};
 use url::Url;
-use std::str::from_utf8;
-
-use redis::{FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
 
 #[derive(Hash, Eq, Debug)]
 pub struct Task {
@@ -24,10 +21,10 @@ impl Task {
                 // checks if there is an error when parsing the url
                 match url_res {
                     Ok(url) => Ok(Task { url }),
-                    Err(_) => Err(Error::new(ErrorKind::InvalidData, "failed to deserialise"))
+                    Err(_) => Err(Error::new(ErrorKind::InvalidInput, "failed to deserialise"))
                 }
             }
-            Err(_) => Err(Error::new(ErrorKind::InvalidInput, "failed to deserialise"))
+            Err(_) => Err(Error::new(ErrorKind::InvalidData, "failed to deserialise"))
         }
     }
 }

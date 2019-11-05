@@ -20,10 +20,10 @@ impl Task {
                 // checks if there is an error when parsing the url
                 match url_res {
                     Ok(url) => Ok(Task { url }),
-                    Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, String::from("failed to deserialise"), Some(Box::new(e))))
+                    Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, "failed to deserialise", Some(Box::new(e))))
                 }
             },
-            Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, String::from("failed to deserialise"), Some(Box::new(e))))
+            Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, "failed to deserialise", Some(Box::new(e))))
         }
     }
 }
