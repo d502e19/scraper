@@ -118,12 +118,12 @@ fn write_to_filter_file(url: String, path: String) -> bool {
         // Open file
         let mut file = OpenOptions::new()
             .append(true)
-            .open(path)
-            .expect("cannot open file");
+            .open(&path)
+            .expect(format!("Could not open file; {:?} for writing filter list", &path).as_str());
 
         // Write url to file, with newline
         file.write(format!("\n{}", shortened_url).as_bytes())
-            .expect("write to file failed");
+            .expect(format!("Could not write to file; {:?} for writing filter list", &path).as_str());
 
         return true;
     }
