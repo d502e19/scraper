@@ -15,12 +15,13 @@ use url::Url;
 use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
 use crate::task::Task;
 use crate::traits::{Manager, TaskProcessResult};
+use crate::errors::ManagerErrorKind::UnreachableError;
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
     fn write_redis_args<W>(&self, out: &mut W)
-    where
-        W: ?Sized + RedisWrite,
+        where
+            W: ?Sized + RedisWrite,
     {
         out.write_arg(self.url.as_str().as_bytes())
     }
@@ -46,8 +47,9 @@ impl FromRedisValue for Task {
 }
 
 pub struct RMQRedisManager {
-    addr: String,
+    rmq_addr: String,
     rmq_port: u16,
+    redis_addr: String,
     redis_port: u16,
     channel: Channel,
     queue: Queue,
@@ -58,27 +60,22 @@ pub struct RMQRedisManager {
 
 impl RMQRedisManager {
     pub fn new(
-        addr: String,
+        rmq_addr: String,
         rmq_port: u16,
+        redis_addr: String,
         redis_port: u16,
         exchange: String,
         routing_key: String,
         queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
-        // FIXME; use loglevel = info to allow this block
-        {
-            println!("Creating RMQRedisManager with following values:");
-            println!("\taddr: {:?}", addr);
-            println!("\trmq_port: {:?}", rmq_port);
-            println!("\tredis_port: {:?}", redis_port);
-            println!("\trmq_exchange: {:?}", exchange);
-            println!("\trmq_routing_key: {:?}", routing_key);
-            println!("\trmq_queue_name: {:?}", queue_name);
-            println!("\tredis_set: {:?}", redis_set);
-        }
+        debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
+            \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\trmq_routing_key: {:?}\
+            \n\trmq_queue_name: {:?}\n\tredis_set: {:?}"
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, routing_key, queue_name, redis_set);
+
         let client = Client::connect(
-            format!("amqp://{}:{}/%2f", addr, rmq_port).as_str(),
+            format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
             ConnectionProperties::default(),
         ).wait().map_err(|_| ())?;
 
@@ -106,8 +103,9 @@ impl RMQRedisManager {
         ).wait().map_err(|_| ())?;
 
         Ok(RMQRedisManager {
-            addr,
+            rmq_addr,
             rmq_port,
+            redis_addr,
             redis_port,
             channel,
             queue,
@@ -131,13 +129,10 @@ impl Manager for RMQRedisManager {
             )
             .wait();
 
-        result.map_err(|e| ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), Some(Box::new(e))))
+        result.map_err(|e| ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))
     }
 
-    fn start_listening<F>(&self, f: F)
-    where
-        F: Fn(Task) -> TaskProcessResult,
-    {
+    fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
         self.channel
             .basic_consume(
                 &self.queue,
@@ -153,7 +148,7 @@ impl Manager for RMQRedisManager {
                             self.channel.basic_reject(delivery.delivery_tag, BasicRejectOptions::default())
                         },
                         Ok(task) => {
-                            let result = f(task);
+                            let result = resolve_func(task);
                             match result {
                                 TaskProcessResult::Ok => {
                                     self.channel.basic_ack(delivery.delivery_tag, false)
@@ -180,7 +175,7 @@ impl Manager for RMQRedisManager {
 
     fn contains(&self, task: &Task) -> ManagerResult<bool> {
         let client_result =
-            redis::Client::open(format!("redis://{}:{}/", self.addr, self.redis_port).as_str());
+            redis::Client::open(format!("redis://{}:{}/", self.redis_addr, self.redis_port).as_str());
         if let Ok(client) = client_result {
             if let Ok(mut con) = client.get_connection() {
                 let found_result = con.sismember(self.redis_set.as_str(), task);
@@ -189,6 +184,6 @@ impl Manager for RMQRedisManager {
                 }
             }
         }
-        Err(ManagerError::new(ManagerErrorKind::UnreachableError, String::from("Could not reach manager."), None))
+        Err(ManagerError::new(UnreachableError, "Could not reach manager.", None))
     }
 }
