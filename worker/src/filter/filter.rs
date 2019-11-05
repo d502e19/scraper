@@ -26,6 +26,7 @@ impl Blacklist {
         }
     }
     /// Private constructor for unit testing
+    #[cfg(test)]
     fn new_from_vec(urls: Vec<String>) -> Self {
         Blacklist { urls }
     }
@@ -63,6 +64,7 @@ impl Whitelist {
         }
     }
     /// Private constructor for unit testing
+    #[cfg(test)]
     fn new_from_vec(urls: Vec<String>) -> Self {
         Whitelist { urls }
     }
