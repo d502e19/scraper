@@ -13,9 +13,9 @@ use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRed
 use url::Url;
 
 use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
+use crate::errors::ManagerErrorKind::UnreachableError;
 use crate::task::Task;
 use crate::traits::{Manager, TaskProcessResult};
-use crate::errors::ManagerErrorKind::UnreachableError;
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
@@ -37,7 +37,7 @@ impl FromRedisValue for Task {
                     Ok(task) => Ok(task),
                     Err(e) => Err(RedisError::from(Error::new(ErrorKind::Other, "failed to deserialise")))
                 }
-            },
+            }
             _ => Err(RedisError::from(Error::new(
                 ErrorKind::Other,
                 "Response could not be translated to a task",
@@ -146,7 +146,7 @@ impl Manager for RMQRedisManager {
                     match task_res {
                         Err(e) => {
                             self.channel.basic_reject(delivery.delivery_tag, BasicRejectOptions::default())
-                        },
+                        }
                         Ok(task) => {
                             let result = resolve_func(task);
                             match result {
@@ -155,10 +155,12 @@ impl Manager for RMQRedisManager {
                                 }
                                 TaskProcessResult::Err => self
                                     .channel
-                                    .basic_reject(delivery.delivery_tag, BasicRejectOptions::default()),
+                                    // Do not requeue task if error is met
+                                    .basic_reject(delivery.delivery_tag, BasicRejectOptions { requeue: false }),
                                 TaskProcessResult::Reject => self
                                     .channel
-                                    .basic_reject(delivery.delivery_tag, BasicRejectOptions::default()),
+                                    // Do requeue task if error is met
+                                    .basic_reject(delivery.delivery_tag, BasicRejectOptions { requeue: true }),
                             }
                         }
                     }
