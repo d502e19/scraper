@@ -59,20 +59,20 @@ impl<'a, S, D> Worker<S, D> {
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     error!("{} failed to download a page. {}", self.name, e);
-                    TaskProcessResult::Err
+                    return TaskProcessResult::from(e)
                 }
                 Ok(page) => {
                     match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
                             error!("{} failed to extract data from page. {}", self.name, e);
-                            TaskProcessResult::Err
+                            return TaskProcessResult::from(e)
                         }
                         Ok((mut urls, data)) => {
                             // Archiving
                             for datum in data {
                                 if let Err(e) = self.archive.archive_content(datum) {
                                     error!("{} failed archiving some data. {}", self.name, e);
-                                    return TaskProcessResult::Err;
+                                    return TaskProcessResult::from(e)
                                 }
                             }
 
@@ -85,7 +85,7 @@ impl<'a, S, D> Worker<S, D> {
                                     match self.normaliser.normalise(url) {
                                         Ok(normalised_url) => Some(normalised_url),
                                         Err(e) => {
-                                            error!("{} failed to normalise {}, {}", self.name, url_as_str, e);
+                                            error!("{} failed to normalise {}. {}", self.name, url_as_str, e);
                                             None
                                         }
                                     }
@@ -103,19 +103,19 @@ impl<'a, S, D> Worker<S, D> {
                                             if !exists {
                                                 if let Err(e) = self.manager.submit_task(task) {
                                                     error!("{} failed submitting a new task to the manager. {}", self.name, e);
-                                                    return TaskProcessResult::Err;
+                                                    return TaskProcessResult::from(e);
                                                 }
                                             }
                                         }
                                         Err(e) => {
-                                            error!("{} failed to check if a new task is present in the collection. Ignoring that task. {}", self.name, e);
-                                            return TaskProcessResult::Err;
+                                            error!("{} failed to check if a new task is present in the collection. {}", self.name, e);
+                                            return TaskProcessResult::from(e);
                                         }
                                     }
                                 }
                             }
 
-                            TaskProcessResult::Ok
+                            return TaskProcessResult::Ok
                         }
                     }
                 }
