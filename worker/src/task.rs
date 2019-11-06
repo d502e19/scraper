@@ -1,4 +1,5 @@
 use url::Url;
+use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
 
 #[derive(Hash, Eq, Debug)]
 pub struct Task {
@@ -10,10 +11,19 @@ impl Task {
         self.url.as_str().as_bytes().to_vec()
     }
 
-    pub fn deserialise(data: Vec<u8>) -> Self {
-        Task {
-            // TODO; should implement error-checking on unwrapping both string from data and URL-parsing.
-            url: Url::parse(String::from_utf8(data).unwrap().as_str()).unwrap(),
+    pub fn deserialise(data: Vec<u8>) -> ManagerResult<Self> {
+        let data_to_string_res = String::from_utf8(data);
+        // checks if there is an error when changing data to a string
+        match data_to_string_res {
+            Ok(data) => {
+                let url_res = Url::parse(&data) ;
+                // checks if there is an error when parsing the url
+                match url_res {
+                    Ok(url) => Ok(Task { url }),
+                    Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, "failed to deserialise", Some(Box::new(e))))
+                }
+            },
+            Err(e) => Err(ManagerError::new(ManagerErrorKind::InvalidTask, "failed to deserialise", Some(Box::new(e))))
         }
     }
 }
@@ -36,7 +46,7 @@ mod tests {
     fn serialise_deserialise_success() {
         let task1 = task::Task { url: Url::parse("http://aau.dk/").unwrap() };
         let task1_serialised = task1.serialise();
-        let task1_regen = Task::deserialise(task1_serialised);
+        let task1_regen = Task::deserialise(task1_serialised).unwrap();
         assert_eq!(task1, task1_regen);
     }
 
@@ -48,8 +58,8 @@ mod tests {
 
         let task1_serialised = task1.serialise();
         let task2_serialised = task2.serialise();
-        let task1_regen = Task::deserialise(task1_serialised);
-        let task2_regen = Task::deserialise(task2_serialised);
+        let task1_regen = Task::deserialise(task1_serialised).unwrap();
+        let task2_regen = Task::deserialise(task2_serialised).unwrap();
         assert_ne!(task1_regen, task2_regen);
     }
 
@@ -99,5 +109,21 @@ mod tests {
         let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
         let task2 = task::Task { url: Url::parse("https://aau.dk:81").unwrap() };
         assert_ne!(task1, task2)
+    }
+
+    // deserialise casts an error when data is not an url
+    #[test]
+    fn deserialise_fail_01() {
+        let task = "mail@aau.dk".as_bytes();
+        let task_deserialise = Task::deserialise(task.to_vec());
+        assert!(task_deserialise.is_err())
+    }
+
+    // deserialise casts an error if the url contains anything that is not utf-8
+    #[test]
+    fn deserialise_fail_02() {
+        let task = "https://www.�.com".as_bytes();
+        let task_deserialise = Task::deserialise(task.to_vec());
+        assert!(task_deserialise.is_err())
     }
 }
