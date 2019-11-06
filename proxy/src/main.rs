@@ -103,7 +103,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Client::connect(&addr, ConnectionProperties::default()).and_then(|client| {
                     // Finds collection and sees the tasks
                     client.create_channel().and_then(|channel| {
-                        channel
+                       channel
                             .queue_declare(
                                 args.value_of("rabbitmq-collection-queue").unwrap(),
                                 QueueDeclareOptions::default(),
@@ -120,7 +120,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     .and_then(|consumer| {
                                         // Copies every task from collection to redis
                                         consumer.for_each(move |msg| {
-                                            let received_task = Task::deserialise(msg.data);
+                                            let received_task = Task::deserialise(msg.data).unwrap();
                                             let add_res: RedisResult<u32> = connection.sadd(
                                                 args.value_of("redis-set").unwrap(),
                                                 &received_task,

@@ -758,6 +758,7 @@ dependencies = [
  "lapin-futures 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redis 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
