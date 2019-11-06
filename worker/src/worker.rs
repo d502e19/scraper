@@ -1,10 +1,9 @@
 use std::collections::HashSet;
 use std::marker::PhantomData;
-
 use url::Url;
 
+use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult, Normaliser, Filter};
 use crate::task::Task;
-use crate::traits::{Archive, Downloader, Extractor, Manager, Normaliser, TaskProcessResult};
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
@@ -15,12 +14,15 @@ pub struct Worker<S, D> {
     extractor: Box<dyn Extractor<S, D>>,
     normaliser: Box<dyn Normaliser>,
     archive: Box<dyn Archive<D>>,
+    filter: Box<dyn Filter>,
+
     // Phantom data markers are used to please the type checker about S and D.
     // Without it will believe that S and D are unused even though the determine the
     // type parameters of some of the components
     _page_type_marker: PhantomData<S>,
     _data_type_marker: PhantomData<D>,
 }
+
 
 impl<'a, S, D> Worker<S, D> {
     /// Create a new worker with the given components.
@@ -31,7 +33,9 @@ impl<'a, S, D> Worker<S, D> {
         extractor: Box<dyn Extractor<S, D>>,
         normaliser: Box<dyn Normaliser>,
         archive: Box<dyn Archive<D>>,
+        filter: Box<dyn Filter>,
     ) -> Self {
+
         Worker {
             name: String::from(name),
             manager,
@@ -39,6 +43,7 @@ impl<'a, S, D> Worker<S, D> {
             extractor,
             normaliser,
             archive,
+            filter,
             _page_type_marker: PhantomData,
             _data_type_marker: PhantomData,
         }
@@ -92,18 +97,20 @@ impl<'a, S, D> Worker<S, D> {
 
                             // Check if extracted tasks are new, if they are, submit them
                             for task in &tasks {
-                                match self.manager.contains(task) {
-                                    Ok(exists) => {
-                                        if !exists {
-                                            if let Err(e) = self.manager.submit_task(task) {
-                                                error!("{} failed submitting a new task to the manager. {}", self.name, e);
-                                                return TaskProcessResult::Err;
+                                if self.filter.filter(&task) {
+                                    match self.manager.contains(task) {
+                                        Ok(exists) => {
+                                            if !exists {
+                                                if let Err(e) = self.manager.submit_task(task) {
+                                                    error!("{} failed submitting a new task to the manager. {}", self.name, e);
+                                                    return TaskProcessResult::Err;
+                                                }
                                             }
                                         }
-                                    }
-                                    Err(e) => {
-                                        error!("{} failed to check if a new task is present in the collection. Ignoring that task. {}", self.name, e);
-                                        return TaskProcessResult::Err;
+                                        Err(e) => {
+                                            error!("{} failed to check if a new task is present in the collection. Ignoring that task. {}", self.name, e);
+                                            return TaskProcessResult::Err;
+                                        }
                                     }
                                 }
                             }
@@ -116,3 +123,4 @@ impl<'a, S, D> Worker<S, D> {
         });
     }
 }
+

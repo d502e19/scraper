@@ -43,6 +43,10 @@ pub trait Extractor<S, D> {
     fn extract_content(&self, page: S, url: &Url) -> ExtractResult<(Vec<Url>, Vec<D>)>;
 }
 
+pub trait Filter {
+    fn filter(&self, task: &Task) -> bool;
+}
+
 pub trait Archive<D> {
     fn archive_content(&self, content: D) -> ArchiveResult<()>;
 }

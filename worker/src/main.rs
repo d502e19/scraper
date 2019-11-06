@@ -22,10 +22,12 @@ use log::LevelFilter;
 use crate::defaultnormaliser::DefaultNormaliser;
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
+use crate::filter::filter::{Whitelist, Blacklist, NoFilter};
 use crate::rmqredis::RMQRedisManager;
 use crate::task::Task;
 use crate::void::Void;
 use crate::worker::Worker;
+use crate::traits::Filter;
 
 mod downloader;
 mod extractor;
@@ -38,6 +40,7 @@ mod void;
 mod worker;
 mod archive;
 mod defaultnormaliser;
+mod filter;
 
 /// Create and return log4rs-config with some default values
 fn get_log4rs_config(log_path: &str, default_log_level: LevelFilter) -> log4rs::config::Config {
@@ -148,6 +151,30 @@ fn main() -> Result<(), Box<dyn Error>> {
             .default_value("info")
             .value_name("LEVEL")
             .help("Specify the log level {error, warn, info, debug, trace, off}")
+    ).arg(
+        Arg::with_name("filter-enable")
+            .short("f")
+            .long("filter-enable")
+            .env("SCRAPER_FILTER_ENABLE")
+            .default_value("false")
+            .value_name("BOOLEAN")
+            .help("Specify whether filtering is enabled")
+    ).arg(
+        Arg::with_name("filter-path")
+            .short("w")
+            .long("filter-path")
+            .env("SCRAPER_FILTER_PATH")
+            .default_value("src/filter/whitelist.txt")
+            .value_name("PATH")
+            .help("Specify path to list for filtering")
+    ).arg(
+        Arg::with_name("filter-type")
+            .short("t")
+            .long("filter-type")
+            .env("SCRAPER_FILTER_TYPE")
+            .default_value("white")
+            .value_name("STRING")
+            .help("Specify whether the list in the given filter-path is a 'white' or 'black'-list")
     ).get_matches();
 
     // Load config for logging to stdout and logfile.
@@ -181,6 +208,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         ).expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
+        let filter: Box<dyn Filter> =
+            if args.value_of("filter-enable").unwrap().parse().unwrap() {
+                match args.value_of("filter-type").unwrap() {
+                    "black" => { Box::new(Blacklist::new(args.value_of("filter-path").unwrap().to_string())) }
+                    "white" | _ => { Box::new(Whitelist::new(args.value_of("filter-path").unwrap().to_string())) }
+                }
+            } else { Box::new(NoFilter) };
         let normaliser = DefaultNormaliser;
         let archive = Void;
         let worker = Worker::new(
@@ -190,6 +224,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Box::new(extractor),
             Box::new(normaliser),
             Box::new(archive),
+            filter,
         );
         worker.start();
 
