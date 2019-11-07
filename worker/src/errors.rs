@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
+use crate::traits::TaskProcessResult;
 
 #[derive(Debug)]
 pub enum ManagerErrorKind {
@@ -84,6 +85,17 @@ impl ManagerError {
     }
 }
 
+// Allows our error to be converted to a appropriate TaskProcessResult
+impl From<ManagerError> for TaskProcessResult {
+    fn from(e: ScraperError<ManagerErrorKind>) -> Self {
+        match e.kind {
+            ManagerErrorKind::NetworkError => TaskProcessResult::Reject,
+            ManagerErrorKind::UnreachableError => TaskProcessResult::Reject,
+            ManagerErrorKind::InvalidTask => TaskProcessResult::Err,
+        }
+    }
+}
+
 impl DownloadError {
     /// Create a new DownloadError with a kind, message, and optional source error.
     pub fn new(kind: DownloadErrorKind, msg: &str, source: Option<Box<dyn Error>>) -> Self {
@@ -91,6 +103,18 @@ impl DownloadError {
             kind,
             msg: String::from(msg),
             source,
+        }
+    }
+}
+
+// Allows our error to be converted to a appropriate TaskProcessResult
+impl From<DownloadError> for TaskProcessResult {
+    fn from(e: ScraperError<DownloadErrorKind>) -> Self {
+        match e.kind {
+            DownloadErrorKind::NetworkError => TaskProcessResult::Reject,
+            DownloadErrorKind::UnreachableError => TaskProcessResult::Reject,
+            DownloadErrorKind::InvalidURL => TaskProcessResult::Err,
+            DownloadErrorKind::InvalidPage => TaskProcessResult::Err,
         }
     }
 }
@@ -106,6 +130,15 @@ impl ExtractError {
     }
 }
 
+// Allows our error to be converted to a appropriate TaskProcessResult
+impl From<ExtractError> for TaskProcessResult {
+    fn from(e: ScraperError<ExtractErrorKind>) -> Self {
+        match e.kind {
+            ExtractErrorKind::ParsingError => TaskProcessResult::Err,
+        }
+    }
+}
+
 impl NormaliseError {
     /// Create a new NormaliseError with a kind, message, and optional source error.
     pub fn new(kind: NormaliseErrorKind, msg: &str, source: Option<Box<dyn Error>>) -> Self {
@@ -117,6 +150,15 @@ impl NormaliseError {
     }
 }
 
+// Allows our error to be converted to a appropriate TaskProcessResult
+impl From<NormaliseError> for TaskProcessResult {
+    fn from(e: ScraperError<NormaliseErrorKind>) -> Self {
+        match e.kind {
+            NormaliseErrorKind::ParsingError => TaskProcessResult::Err,
+        }
+    }
+}
+
 impl ArchiveError {
     /// Create a new ArchiveError with a kind, message, and optional source error.
     pub fn new(kind: ArchiveErrorKind, msg: &str, source: Option<Box<dyn Error>>) -> Self {
@@ -124,6 +166,18 @@ impl ArchiveError {
             kind,
             msg: String::from(msg),
             source,
+        }
+    }
+}
+
+// Allows our error to be converted to a appropriate TaskProcessResult
+impl From<ArchiveError> for TaskProcessResult {
+    fn from(e: ScraperError<ArchiveErrorKind>) -> Self {
+        match e.kind {
+            ArchiveErrorKind::NetworkError => TaskProcessResult::Reject,
+            ArchiveErrorKind::UnreachableError => TaskProcessResult::Reject,
+            ArchiveErrorKind::ServerError => TaskProcessResult::Reject,
+            ArchiveErrorKind::InvalidData => TaskProcessResult::Err,
         }
     }
 }
