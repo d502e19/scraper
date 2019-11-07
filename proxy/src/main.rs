@@ -13,7 +13,7 @@ use clap::{App, Arg};
 use futures::future::Future;
 use futures::stream::Stream;
 use lapin_futures::{Client, ConnectionProperties, ExchangeKind};
-use lapin_futures::options::{BasicConsumeOptions, BasicRejectOptions, QueueDeclareOptions, ExchangeDeclareOptions, QueueBindOptions};
+use lapin_futures::options::{BasicConsumeOptions, BasicRejectOptions, QueueDeclareOptions};
 use lapin_futures::types::FieldTable;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::append::file::FileAppender;
@@ -188,9 +188,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                     args.value_of("rmq-address").unwrap(),
                     args.value_of("rmq-port").unwrap(),
                 );
-                let client = Client::connect(&rmq_addr, ConnectionProperties::default()).wait().map_err(|e| (e))?;
+                let client = Client::connect(&rmq_addr, ConnectionProperties::default()).wait()?;
                 // Finds collection and sees the tasks
-                let channel = client.create_channel().wait().map_err(|e| (e))?;
+                let channel = client.create_channel().wait()?;
                 let queue = channel
                     .queue_declare(
                         args.value_of("rabbitmq-collection-queue").unwrap(),
@@ -204,7 +204,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         args.value_of("rabbitmq-consumer-tag").unwrap(),
                         BasicConsumeOptions::default(),
                         FieldTable::default(),
-                    ).wait().map_err(|e| (e))?;
+                    ).wait()?;
 
 
                 // Copies every task from collection to redis
@@ -220,7 +220,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     } else {
                         channel.basic_reject(
                             msg.delivery_tag,
-                            BasicRejectOptions::default(), //TODO
+                            BasicRejectOptions { requeue : true }
                         )
                     }
                 }).wait().unwrap();
