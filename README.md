@@ -18,9 +18,15 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
+    -f, --filter-enable <BOOLEAN>    Specify whether filtering is enabled [env: SCRAPER_FILTER_ENABLE=]  [default:
+                                     false]
+    -w, --filter-path <PATH>         Specify path to list for filtering [env: SCRAPER_FILTER_PATH=]  [default:
+                                     src/filter/whitelist.txt]
+    -t, --filter-type <STRING>       Specify whether the list in the given filter-path is a 'white' or 'black'-list
+                                     [env: SCRAPER_FILTER_TYPE=]  [default: white]
     -o, --log-level <LEVEL>          Specify the log level {error, warn, info, debug, trace, off} [env: LOG_LEVEL=]
                                      [default: info]
-    -l, --log-path <PATH>            Specify the log-file path [env: LOG_PATH=]  [default: worker.log]
+    -l, --log-path <PATH>            Specify the log-file path [env: SCRAPER_WORKER_LOG_PATH=]  [default: worker.log]
     -e, --rmq-exchange <EXCHANGE>    Specify the RabbitMQ exchange to connect to [env: SCRAPER_RABBITMQ_EXCHANGE=]
                                      [default: work]
     -p, --rmq-port <PORT>            Specify the RabbitMQ port to connect to [env: SCRAPER_RABBITMQ_PORT=]  [default:
@@ -51,12 +57,18 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
+    -o, --log-level <LEVEL>          Specify the log level {error, warn, info, debug, trace, off} [env: LOG_LEVEL=]
+                                     [default: info]
+    -l, --log-path <PATH>            Specify the log-file path [env: SCRAPER_PROXY_LOG_PATH=]  [default: proxy.log]
     -d, --rmq-redis-queue <QUEUE>    Specify the RabbitMQ-REDIS queue to connect to [env: SCRAPER_RABBITMQ_REDIS_QUEUE=]
                                      [default: collection]
     -t, --rmq-consumer-tag <TAG>     Specify the RabbitMQ consumer tag to use [env: SCRAPER_RABBITMQ_CONSUMER_TAG=]
                                      [default: proxy]
-    -a, --addr <ADDR>                Specify the redis address [env: SCRAPER_REDIS_ADDRESS=]  [default: localhost]
+    -e, --addr <ADDR>                Specify the redis address [env: SCRAPER_REDIS_ADDRESS=]  [default: localhost]
     -r, --redis-port <PORT>          Specify the redis-port to connect to [env: SCRAPER_REDIS_PORT=]  [default: 6379]
     -s, --redis-set <SET>            Specify the redis set to connect to [env: SCRAPER_REDIS_SET=]  [default:
                                      collection]
+    -a, --rmq-addr <ADDR>            Specify the RabbitMQ address [env: SCRAPER_RMQ_ADDRESS=]  [default: localhost]
+    -p, --rmq-port <PORT>            Specify the RabbitMQ port to connect to [env: SCRAPER_RABBITMQ_PORT=]  [default:
+                                     5672]
 ```
