@@ -52,7 +52,7 @@ pub struct RMQRedisManager {
     redis_addr: String,
     redis_port: u16,
     channel: Channel,
-    queue: Queue,
+    frontier_queue: Queue,
     exchange: String,
     routing_key: String,
     redis_set: String,
@@ -123,7 +123,7 @@ impl RMQRedisManager {
             redis_addr,
             redis_port,
             channel,
-            queue: frontier_queue,
+            frontier_queue,
             exchange,
             routing_key,
             redis_set,
@@ -150,7 +150,7 @@ impl Manager for RMQRedisManager {
     fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
         self.channel
             .basic_consume(
-                &self.queue,
+                &self.frontier_queue,
                 "", //TODO
                 BasicConsumeOptions::default(),
                 FieldTable::default(),

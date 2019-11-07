@@ -196,7 +196,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         args.value_of("rabbitmq-collection-queue").unwrap(),
                         QueueDeclareOptions::default(),
                         FieldTable::default(),
-                    ).wait().map_err(|e| (e))?;
+                    ).wait()?;
 
                 let consumer = channel
                     .basic_consume(
@@ -220,7 +220,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     } else {
                         channel.basic_reject(
                             msg.delivery_tag,
-                            BasicRejectOptions { requeue : true }
+                            BasicRejectOptions { requeue: true },
                         )
                     }
                 }).wait().unwrap();
