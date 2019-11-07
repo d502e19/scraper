@@ -66,13 +66,14 @@ impl RMQRedisManager {
         redis_port: u16,
         exchange: String,
         routing_key: String,
-        queue_name: String,
+        frontier_queue_name: String,
+        collection_queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
         debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
             \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\trmq_routing_key: {:?}\
-            \n\trmq_queue_name: {:?}\n\tredis_set: {:?}"
-               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, routing_key, queue_name, redis_set);
+            \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}"
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, routing_key, frontier_queue_name, collection_queue_name, redis_set);
 
         let client = Client::connect(
             format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
@@ -81,11 +82,17 @@ impl RMQRedisManager {
 
         let channel = client.create_channel().wait().map_err(|_| ())?;
 
-        let queue = channel.queue_declare(
-            queue_name.as_str(),
+        let frontier_queue = channel.queue_declare(
+            frontier_queue_name.as_str(),
             QueueDeclareOptions::default(),
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
+
+        let collection_queue = channel.queue_declare(
+            collection_queue_name.as_str(),
+            QueueDeclareOptions::default(),
+            FieldTable::default(),
+        ).wait().map_err(|_|())?;
 
         channel.exchange_declare(
             exchange.as_str(),
@@ -95,12 +102,20 @@ impl RMQRedisManager {
         ).wait().map_err(|_| ())?;
 
         channel.queue_bind(
-            queue_name.as_str(),
+            frontier_queue_name.as_str(),
             exchange.as_str(),
             routing_key.as_str(),
             QueueBindOptions::default(),
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
+
+        channel.queue_bind(
+            collection_queue_name.as_str(),
+            exchange.as_str(),
+            routing_key.as_str(),
+            QueueBindOptions::default(),
+            FieldTable::default(),
+        ).wait().map_err(|_|())?;
 
         Ok(RMQRedisManager {
             rmq_addr,
@@ -108,7 +123,7 @@ impl RMQRedisManager {
             redis_addr,
             redis_port,
             channel,
-            queue,
+            queue: frontier_queue,
             exchange,
             routing_key,
             redis_set,
