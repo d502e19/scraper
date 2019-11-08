@@ -223,7 +223,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             BasicRejectOptions { requeue: true },
                         )
                     }
-                }).wait().unwrap();
+                }).wait()?;
             }
             Err(_) => error!("Could not connect to redis"),
         }
