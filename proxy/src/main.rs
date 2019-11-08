@@ -83,7 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .default_value("collection")
             .value_name("SET")
             .help("Specify the redis set to connect to"),
-    ).
+        ).
         arg(
             Arg::with_name("rabbitmq-routing-key")
                 .short("k")
