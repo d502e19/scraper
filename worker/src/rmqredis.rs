@@ -6,7 +6,7 @@ use futures::stream::Stream;
 use lapin_futures::{BasicProperties, Channel, Client, ConnectionProperties, ExchangeKind, Queue};
 use lapin_futures::options::{
     BasicConsumeOptions, BasicPublishOptions, BasicRejectOptions, ExchangeDeclareOptions,
-    QueueBindOptions, QueueDeclareOptions,
+    QueueBindOptions, QueueDeclareOptions, BasicQosOptions,
 };
 use lapin_futures::types::FieldTable;
 use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRedisArgs, Value};
@@ -54,6 +54,7 @@ pub struct RMQRedisManager {
     channel: Channel,
     queue: Queue,
     exchange: String,
+    prefetch_count: u16,
     routing_key: String,
     redis_set: String,
 }
@@ -65,14 +66,15 @@ impl RMQRedisManager {
         redis_addr: String,
         redis_port: u16,
         exchange: String,
+        prefetch_count: u16,
         routing_key: String,
         queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
         debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
-            \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\trmq_routing_key: {:?}\
+            \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\n\trmq_routing_key: {:?}\
             \n\trmq_queue_name: {:?}\n\tredis_set: {:?}"
-               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, routing_key, queue_name, redis_set);
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, routing_key, queue_name, redis_set);
 
         let client = Client::connect(
             format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
@@ -102,6 +104,12 @@ impl RMQRedisManager {
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
 
+        // Limit the amount of tasks stored in the local queue
+        channel.basic_qos(
+            prefetch_count,
+            BasicQosOptions::default(),
+        ).wait().map_err(|_| ())?;
+
         Ok(RMQRedisManager {
             rmq_addr,
             rmq_port,
@@ -110,6 +118,7 @@ impl RMQRedisManager {
             channel,
             queue,
             exchange,
+            prefetch_count,
             routing_key,
             redis_set,
         })

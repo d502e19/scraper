@@ -117,6 +117,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             .value_name("EXCHANGE")
             .help("Specify the RabbitMQ exchange to connect to")
     ).arg(
+        Arg::with_name("rabbitmq-prefetch-count")
+            .short("c")
+            .long("rmq-prefetch-count")
+            .env("SCRAPER_RABBITMQ_PREFETCH_COUNT")
+            .default_value("5")
+            .value_name("COUNT")
+            .help("Specify the number of tasks to prefetch")
+    ).arg(
         Arg::with_name("rabbitmq-routing-key")
             .short("k")
             .long("rmq-routing-key")
@@ -208,6 +216,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("redis-address").unwrap().to_string(),
             args.value_of("redis-port").unwrap().parse().unwrap(), // Parse str to u16
             args.value_of("rabbitmq-exchange").unwrap().to_string(),
+            args.value_of("rabbitmq-prefetch-count").unwrap().parse().unwrap(), // Parse str to u16
             args.value_of("rabbitmq-routing-key").unwrap().to_string(),
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),
