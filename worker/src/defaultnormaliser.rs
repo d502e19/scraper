@@ -1,12 +1,8 @@
-use crate::task::Task;
 use crate::traits::Normaliser;
 
-use std::error::Error;
-use std::fmt;
 use url::Url;
 use url_normalizer;
-use rand::seq::index::sample;
-use crate::errors::{NormaliseResult, NormaliseError, NormaliseErrorKind};
+use crate::errors::{NormaliseResult, NormaliseError};
 use crate::errors::NormaliseErrorKind::ParsingError;
 
 pub struct DefaultNormaliser;

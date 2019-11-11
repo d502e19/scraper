@@ -5,7 +5,7 @@ use crate::traits::Archive;
 pub struct Void;
 
 impl<D> Archive<D> for Void {
-    fn archive_content(&self, content: D) -> ArchiveResult<()> {
+    fn archive_content(&self, _content: D) -> ArchiveResult<()> {
         Ok(())
     }
 }

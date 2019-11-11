@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use url::Url;
 
 use crate::errors::{ArchiveResult, DownloadResult, ExtractResult, ManagerResult, NormaliseResult};

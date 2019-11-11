@@ -2,11 +2,13 @@ use crate::errors::ManagerResult;
 use crate::Task;
 use crate::traits::{Collection, Frontier, Manager, TaskProcessResult};
 
+#[allow(dead_code)]
 struct SplitManager<F: Frontier, S: Collection> {
     frontier: F,
     collection: S,
 }
 
+#[allow(dead_code)]
 impl<F: Frontier, S: Collection> SplitManager<F, S> {
     fn new(frontier: F, collection: S) -> Self {
         SplitManager {

@@ -1,19 +1,19 @@
-use std::error::Error;
-
 use futures::Future;
 use lapin_futures::{BasicProperties, Channel};
 use lapin_futures::options::BasicPublishOptions;
 
-use crate::errors::{ArchiveError, ArchiveErrorKind, ArchiveResult};
+use crate::errors::{ArchiveError, ArchiveResult};
 use crate::traits::Archive;
 use crate::errors::ArchiveErrorKind::UnreachableError;
 
+#[allow(dead_code)]
 pub struct RabbitMQArchive {
     channel: Channel,
     exchange: String,
     routing_key: String,
 }
 
+#[allow(dead_code)]
 impl RabbitMQArchive {
     pub fn new(channel: Channel, exchange: String, routing_key: String) -> RabbitMQArchive {
         RabbitMQArchive {

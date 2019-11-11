@@ -1,5 +1,4 @@
 use std::io::{Error, ErrorKind};
-use std::str::from_utf8;
 
 use futures::future::Future;
 use futures::stream::Stream;
@@ -9,10 +8,9 @@ use lapin_futures::options::{
     QueueBindOptions, QueueDeclareOptions, BasicQosOptions,
 };
 use lapin_futures::types::FieldTable;
-use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRedisArgs, Value};
-use url::Url;
+use redis::{Commands, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
 
-use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
+use crate::errors::{ManagerError, ManagerResult};
 use crate::errors::ManagerErrorKind::UnreachableError;
 use crate::task::Task;
 use crate::traits::{Manager, TaskProcessResult};
@@ -32,16 +30,13 @@ impl FromRedisValue for Task {
     fn from_redis_value(v: &Value) -> Result<Self, RedisError> {
         match *v {
             Value::Data(ref bytes) => {
-                let result = Task::deserialise(bytes.to_owned());
-                match result {
-                    Ok(task) => Ok(task),
-                    Err(e) => Err(RedisError::from(Error::new(ErrorKind::Other, "failed to deserialise")))
-                }
+                Task::deserialise(bytes.to_owned())
+                    .map_err(|_| RedisError::from(Error::new(ErrorKind::Other, "Failed to deserialise task")))
             }
             _ => Err(RedisError::from(Error::new(
                 ErrorKind::Other,
                 "Response could not be translated to a task",
-            ))),
+            )))
         }
     }
 }
@@ -153,8 +148,8 @@ impl Manager for RMQRedisManager {
                 consumer.for_each(move |delivery| {
                     let task_res = Task::deserialise(delivery.data);
                     match task_res {
-                        Err(e) => {
-                            self.channel.basic_reject(delivery.delivery_tag, BasicRejectOptions::default())
+                        Err(_) => {
+                            self.channel.basic_reject(delivery.delivery_tag, BasicRejectOptions { requeue: false })
                         }
                         Ok(task) => {
                             let result = resolve_func(task);

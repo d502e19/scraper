@@ -8,7 +8,7 @@ use crate::traits::Filter;
 pub(crate) struct NoFilter;
 
 impl Filter for NoFilter {
-    fn filter(&self, task: &Task) -> bool {
+    fn filter(&self, _task: &Task) -> bool {
         true
     }
 }
