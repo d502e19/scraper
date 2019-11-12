@@ -26,8 +26,7 @@ impl RabbitMQArchive {
     }
 }
 
-impl<D> Archive<D> for RabbitMQArchive
-    where D: Into<Vec<u8>> {
+impl<D> Archive<D> for RabbitMQArchive where D: Into<Vec<u8>> {
     fn archive_content(&self, content: D) -> ArchiveResult<()> {
         // Submit data to RabbitMQ
         let bytes = content.into();

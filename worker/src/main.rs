@@ -117,20 +117,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             .help("Specify the RabbitMQ exchange to connect to")
     ).arg(
         Arg::with_name("rabbitmq-prefetch-count")
-            .short("c")
+            .short("n")
             .long("rmq-prefetch-count")
             .env("SCRAPER_RABBITMQ_PREFETCH_COUNT")
             .default_value("5")
             .value_name("COUNT")
             .help("Specify the number of tasks to prefetch")
-    ).arg(
-        Arg::with_name("rabbitmq-routing-key")
-            .short("k")
-            .long("rmq-routing-key")
-            .env("SCRAPER_RABBITMQ_ROUTING_KEY")
-            .default_value("") // No routing-key by default
-            .value_name("KEY")
-            .help("Specify the RabbitMQ routing-key to connect to")
     ).arg(
         Arg::with_name("rabbitmq-queue")
             .short("q")
@@ -226,7 +218,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("redis-port").unwrap().parse().expect("Failed parsing Redis port to u16"), // Parse str to u16
             args.value_of("rabbitmq-exchange").unwrap().to_string(),
             args.value_of("rabbitmq-prefetch-count").unwrap().parse().expect("Failed parsing prefetch count to u16"), // Parse str to u16
-            args.value_of("rabbitmq-routing-key").unwrap().to_string(),
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),

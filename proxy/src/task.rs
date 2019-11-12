@@ -43,8 +43,8 @@ impl PartialEq for Task {
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
     fn write_redis_args<W>(&self, out: &mut W)
-        where
-            W: ?Sized + RedisWrite,
+    where
+        W: ?Sized + RedisWrite,
     {
         out.write_arg(self.url.as_str().as_bytes())
     }

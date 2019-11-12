@@ -18,8 +18,8 @@ use crate::traits::{Manager, TaskProcessResult};
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
     fn write_redis_args<W>(&self, out: &mut W)
-        where
-            W: ?Sized + RedisWrite,
+    where
+        W: ?Sized + RedisWrite,
     {
         out.write_arg(self.url.as_str().as_bytes())
     }
@@ -54,7 +54,6 @@ pub struct RMQRedisManager {
     frontier_queue: Queue,
     exchange: String,
     prefetch_count: u16,
-    routing_key: String,
     redis_set: String,
 }
 
@@ -67,15 +66,14 @@ impl RMQRedisManager {
         redis_port: u16,
         exchange: String,
         prefetch_count: u16,
-        routing_key: String,
         frontier_queue_name: String,
         collection_queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
         debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
-            \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\n\trmq_routing_key: {:?}\
+            \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\
             \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}"
-               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, routing_key, frontier_queue_name, collection_queue_name, redis_set);
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, frontier_queue_name, collection_queue_name, redis_set);
 
        let client = Client::connect(
             format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
@@ -90,7 +88,7 @@ impl RMQRedisManager {
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
 
-        let collection_queue = channel.queue_declare(
+        channel.queue_declare(
             collection_queue_name.as_str(),
             QueueDeclareOptions::default(),
             FieldTable::default(),
@@ -106,7 +104,7 @@ impl RMQRedisManager {
         channel.queue_bind(
             frontier_queue_name.as_str(),
             exchange.as_str(),
-            routing_key.as_str(),
+            "",
             QueueBindOptions::default(),
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
@@ -114,7 +112,7 @@ impl RMQRedisManager {
         channel.queue_bind(
             collection_queue_name.as_str(),
             exchange.as_str(),
-            routing_key.as_str(),
+            "",
             QueueBindOptions::default(),
             FieldTable::default(),
         ).wait().map_err(|_|())?;
@@ -134,7 +132,6 @@ impl RMQRedisManager {
             frontier_queue,
             exchange,
             prefetch_count,
-            routing_key,
             redis_set,
         })
     }
@@ -147,7 +144,7 @@ impl Manager for RMQRedisManager {
             .channel
             .basic_publish(
                 self.exchange.as_str(),
-                self.routing_key.as_str(),
+                "",
                 task.serialise(),
                 BasicPublishOptions::default(),
                 BasicProperties::default(),
@@ -162,7 +159,7 @@ impl Manager for RMQRedisManager {
         self.channel
             .basic_consume(
                 &self.frontier_queue,
-                "", //TODO
+                "",
                 BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
