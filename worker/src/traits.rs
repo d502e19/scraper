@@ -45,7 +45,7 @@ pub trait Downloader<S> {
     fn fetch_page(&self, task: &Task) -> DownloadResult<S>;
 }
 
-/// The Extractor extracts new URLs and target data D from the page S
+/// The Extractor extracts new Urls and target data D from the page S
 pub trait Extractor<S, D> {
     fn extract_content(&self, page: S, url: &Url) -> ExtractResult<(Vec<Url>, Vec<D>)>;
 }
@@ -61,7 +61,7 @@ pub trait Archive<D> {
     fn archive_content(&self, content: D) -> ArchiveResult<()>;
 }
 
-/// The Normaliser normalises URLs to avoid different URLs to the same page
+/// The Normaliser normalises URLs to avoid different Urls to the same page
 pub trait Normaliser {
     fn normalise(&self, url: Url) -> NormaliseResult<Url>;
 }

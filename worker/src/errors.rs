@@ -14,7 +14,7 @@ pub enum ManagerErrorKind {
 pub enum DownloadErrorKind {
     NetworkError,        // No internet
     UnreachableError,    // No response
-    InvalidURL,          // URL is invalid
+    InvalidURL,          // Url is invalid
     InvalidPage,         // Could not make sense of downloaded material
 }
 

@@ -13,20 +13,20 @@ impl Filter for NoFilter {
     }
 }
 
-/// A Blacklist is a Filter that will cull specific URLs
+/// A Blacklist is a Filter that will cull specific Urls
 pub(crate) struct Blacklist {
     urls: Vec<String>,
 }
 
 impl Blacklist {
-    /// Construct a Blacklist from a file or blacklisted URL substrings
+    /// Construct a Blacklist from a file or blacklisted Url substrings
     pub fn new(path: String) -> Self {
         Blacklist {
             urls: read_filter_from_file((&path).to_string()),
         }
     }
 
-    /// Construct a Blacklist from a Vec of URL substrings
+    /// Construct a Blacklist from a Vec of Url substrings
     #[cfg(test)]
     fn new_from_vec(urls: Vec<String>) -> Self {
         Blacklist { urls }
@@ -50,19 +50,19 @@ impl Filter for Blacklist {
     }
 }
 
-/// A Whitelist is a Filter that only allows certain URLs
+/// A Whitelist is a Filter that only allows certain Urls
 pub(crate) struct Whitelist {
     urls: Vec<String>,
 }
 
 impl Whitelist {
-    /// Construct a Whitelist from a file or whitelisted URL substrings
+    /// Construct a Whitelist from a file or whitelisted Url substrings
     pub fn new(path: String) -> Self {
         Whitelist {
             urls: read_filter_from_file((&path).to_string()),
         }
     }
-    /// Construct a Whitelist from a Vec of URL substrings
+    /// Construct a Whitelist from a Vec of Url substrings
     #[cfg(test)]
     fn new_from_vec(urls: Vec<String>) -> Self {
         Whitelist { urls }
@@ -136,34 +136,34 @@ mod tests {
     use crate::task::Task;
     use crate::traits::Filter;
 
-    /// Setup vector of URLs as Strings for testing
+    /// Setup vector of Urls as Strings for testing
     fn get_predefined_list() -> Vec<String> {
         // Create a vec of Strings, by mapping to strings and lastly collecting
         vec!["reddit.com", "bbc.co.uk", "dr.dk"].iter().map(|f| f.to_string()).collect()
     }
 
-    /// Test that looking up a URL that is contained in whitelist returns true
+    /// Test that looking up a Url that is contained in whitelist returns true
     #[test]
     fn whitelist_test_01() {
         let whitelist = Whitelist::new_from_vec(get_predefined_list());
         assert!(whitelist.filter(&Task { url: Url::parse("http://reddit.com").unwrap() }))
     }
 
-    /// Test that looking up a URL that is NOT contained in whitelist returns false
+    /// Test that looking up a Url that is NOT contained in whitelist returns false
     #[test]
     fn whitelist_test_02() {
         let whitelist = Whitelist::new_from_vec(get_predefined_list());
         assert!(!whitelist.filter(&Task { url: Url::parse("http://tv2.dk").unwrap() }))
     }
 
-    /// Test that looking up a URL that is contained in blacklist returns false
+    /// Test that looking up a Url that is contained in blacklist returns false
     #[test]
     fn blacklist_test_01() {
         let blacklist = Blacklist::new_from_vec(get_predefined_list());
         assert!(!blacklist.filter(&Task { url: Url::parse("http://reddit.com").unwrap() }))
     }
 
-    /// Test that looking up a URL that is NOT contained in blacklist returns true
+    /// Test that looking up a Url that is NOT contained in blacklist returns true
     #[test]
     fn blacklist_test_02() {
         let blacklist = Blacklist::new_from_vec(get_predefined_list());

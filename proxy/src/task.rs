@@ -2,16 +2,20 @@ use redis::{FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
 use std::io::{Error, ErrorKind};
 use url::Url;
 
+/// Tasks are the workload instances assigned to Workers. It describes a single Url that needs
+/// to be resolved by the web scraper.
 #[derive(Hash, Eq, Debug)]
 pub struct Task {
     pub url: Url,
 }
 
 impl Task {
+    /// Serialise the Task into bytes which makes it easier to transfer
     pub fn serialise(&self) -> Vec<u8> {
         self.url.as_str().as_bytes().to_vec()
     }
 
+    /// Deserialise a series of bytes into a Task
     pub fn deserialise(data: Vec<u8>) -> Result<Self, Error> {
         // checks if there is an error when changing data to a string
         let data_to_string_res = String::from_utf8(data);
@@ -30,6 +34,7 @@ impl Task {
 }
 
 impl PartialEq for Task {
+    // Two tasks are equal if they have the same Url
     fn eq(&self, other: &Self) -> bool {
         self.url == other.url
     }

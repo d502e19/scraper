@@ -10,7 +10,7 @@ use crate::errors::NormaliseErrorKind::ParsingError;
 pub struct DefaultNormaliser;
 
 impl Normaliser for DefaultNormaliser {
-    /// Normalising the tasks URL by setting scheme and path to lowercase,
+    /// Normalising the tasks Url by setting scheme and path to lowercase,
     /// removing the dot in path, removes hash from url and ordering the query.
     fn normalise(&self, url: Url) -> NormaliseResult<Url> {
         DefaultNormaliser::full_normalisation(url)

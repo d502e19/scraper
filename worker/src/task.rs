@@ -68,7 +68,7 @@ mod tests {
         assert_ne!(task1_regen, task2_regen);
     }
 
-    /// Equality between two identical URLs
+    /// Equality between two identical Urls
     #[test]
     fn normalisation_equality_1() {
         let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
@@ -100,7 +100,7 @@ mod tests {
         assert_ne!(task1, task2)
     }
 
-    /// Domain labels change semantics and as such these two URLs are inequal
+    /// Domain labels change semantics and as such these two Urls are inequal
     #[test]
     fn normalisation_inequality_2() {
         let task1 = task::Task { url: Url::parse("https://aau.dk").unwrap() };
