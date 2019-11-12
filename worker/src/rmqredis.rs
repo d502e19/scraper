@@ -52,7 +52,7 @@ pub struct RMQRedisManager {
     redis_addr: String,
     redis_port: u16,
     channel: Channel,
-    queue: Queue,
+    frontier_queue: Queue,
     exchange: String,
     prefetch_count: u16,
     routing_key: String,
@@ -68,26 +68,33 @@ impl RMQRedisManager {
         exchange: String,
         prefetch_count: u16,
         routing_key: String,
-        queue_name: String,
+        frontier_queue_name: String,
+        collection_queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
         debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
             \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\n\trmq_routing_key: {:?}\
-            \n\trmq_queue_name: {:?}\n\tredis_set: {:?}"
-               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, routing_key, queue_name, redis_set);
+            \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}"
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, routing_key, frontier_queue_name, collection_queue_name, redis_set);
 
-        let client = Client::connect(
+       let client = Client::connect(
             format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
             ConnectionProperties::default(),
         ).wait().map_err(|_| ())?;
 
         let channel = client.create_channel().wait().map_err(|_| ())?;
 
-        let queue = channel.queue_declare(
-            queue_name.as_str(),
+        let frontier_queue = channel.queue_declare(
+            frontier_queue_name.as_str(),
             QueueDeclareOptions::default(),
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
+
+        let collection_queue = channel.queue_declare(
+            collection_queue_name.as_str(),
+            QueueDeclareOptions::default(),
+            FieldTable::default(),
+        ).wait().map_err(|_|())?;
 
         channel.exchange_declare(
             exchange.as_str(),
@@ -97,12 +104,20 @@ impl RMQRedisManager {
         ).wait().map_err(|_| ())?;
 
         channel.queue_bind(
-            queue_name.as_str(),
+            frontier_queue_name.as_str(),
             exchange.as_str(),
             routing_key.as_str(),
             QueueBindOptions::default(),
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
+
+        channel.queue_bind(
+            collection_queue_name.as_str(),
+            exchange.as_str(),
+            routing_key.as_str(),
+            QueueBindOptions::default(),
+            FieldTable::default(),
+        ).wait().map_err(|_|())?;
 
         // Limit the amount of tasks stored in the local queue
         channel.basic_qos(
@@ -116,7 +131,7 @@ impl RMQRedisManager {
             redis_addr,
             redis_port,
             channel,
-            queue,
+            frontier_queue,
             exchange,
             prefetch_count,
             routing_key,
@@ -144,7 +159,7 @@ impl Manager for RMQRedisManager {
     fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
         self.channel
             .basic_consume(
-                &self.queue,
+                &self.frontier_queue,
                 "", //TODO
                 BasicConsumeOptions::default(),
                 FieldTable::default(),
