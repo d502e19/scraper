@@ -171,9 +171,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             )
                 .as_str(),
         )
-            .unwrap();
-        let con = redis_client.get_connection();
-        match con {
+            .expect("Could not open a Redis client");
+        match redis_client.get_connection() {
             Ok(mut connection) => {
                 // Establish a connection to RabbitMQ using env-var or passed arg
                 let rmq_addr = format!(
@@ -183,8 +182,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
                 futures::executor::spawn(
                     Client::connect(&rmq_addr, ConnectionProperties::default()).and_then(|client| {
-                        // Finds collection and sees the tasks
                         client.create_channel().and_then(|channel| {
+                            // Declare the collection queue
                             channel
                                 .queue_declare(
                                     args.value_of("rabbitmq-collection-queue").unwrap(),
@@ -202,19 +201,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         .and_then(|consumer| {
                                             // Copies every task from collection to redis
                                             consumer.for_each(move |msg| {
-                                                let received_task =
-                                                    Task::deserialise(msg.data).unwrap();
-                                                let add_res: RedisResult<u32> = connection.sadd(
-                                                    args.value_of("redis-set").unwrap(),
-                                                    &received_task,
-                                                );
-                                                if let Ok(_s) = add_res {
-                                                    channel.basic_ack(msg.delivery_tag, false)
-                                                } else {
-                                                    channel.basic_reject(
-                                                        msg.delivery_tag,
-                                                        BasicRejectOptions::default(), //TODO
-                                                    )
+                                                match Task::deserialise(msg.data) {
+                                                    Ok(task) => {
+                                                        let add_res: RedisResult<u32> = connection.sadd(
+                                                            args.value_of("redis-set").unwrap(),
+                                                            &received_task,
+                                                        );
+                                                        if let Ok(_s) = add_res {
+                                                            channel.basic_ack(msg.delivery_tag, false)
+                                                        } else {
+                                                            channel.basic_nack(msg.delivery_tag, false, true)
+                                                        }
+                                                    }
+                                                    Err(e) => {
+                                                        error!("Could not deserialise task! {:?}", e);
+                                                        channel.basic_reject(msg.delivery_tag, BasicRejectOptions::default())
+                                                    }
                                                 }
                                             })
                                         })

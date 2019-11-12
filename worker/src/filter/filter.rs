@@ -13,19 +13,20 @@ impl Filter for NoFilter {
     }
 }
 
-/// Contains a Vec of all the entries in the path given
+/// A Blacklist is a Filter that will cull specific URLs
 pub(crate) struct Blacklist {
     urls: Vec<String>,
 }
 
 impl Blacklist {
-    /// Constructor for blacklist struct. Automatically reads from path and puts urls into struct
+    /// Construct a Blacklist from a file or blacklisted URL substrings
     pub fn new(path: String) -> Self {
         Blacklist {
             urls: read_filter_from_file((&path).to_string()),
         }
     }
-    /// Private constructor for unit testing
+
+    /// Construct a Blacklist from a Vec of URL substrings
     #[cfg(test)]
     fn new_from_vec(urls: Vec<String>) -> Self {
         Blacklist { urls }
@@ -33,13 +34,11 @@ impl Blacklist {
 }
 
 impl Filter for Blacklist {
-    /// Takes a task and returns false if the task's url exists in blacklist file, else true
+    /// Returns true if the task's url is blacklisted
     fn filter(&self, task: &Task) -> bool {
-        // Assign host url as string to variable if possible, else return true
         if let Some(host_url) = task.url.host_str() {
             let host_url = host_url.to_string();
-            /* Iterates through blacklist and sees if the host_url contains a substring of any
-            entry in the list, therefore checks all paths and sub-domains*/
+            // Check if the host_url contains a blacklisted substring
             for url in &self.urls {
                 if host_url.contains(url) {
                     return false;
@@ -51,19 +50,19 @@ impl Filter for Blacklist {
     }
 }
 
-/// Contains a Vec of all the entries in the path given
+/// A Whitelist is a Filter that only allows certain URLs
 pub(crate) struct Whitelist {
     urls: Vec<String>,
 }
 
 impl Whitelist {
-    /// Constructor for whitelist struct. Automatically reads from path and puts urls into struct
+    /// Construct a Whitelist from a file or whitelisted URL substrings
     pub fn new(path: String) -> Self {
         Whitelist {
             urls: read_filter_from_file((&path).to_string()),
         }
     }
-    /// Private constructor for unit testing
+    /// Construct a Whitelist from a Vec of URL substrings
     #[cfg(test)]
     fn new_from_vec(urls: Vec<String>) -> Self {
         Whitelist { urls }
@@ -71,13 +70,11 @@ impl Whitelist {
 }
 
 impl Filter for Whitelist {
-    /// Takes a task and returns true if the task's url exists in whitelist file, else false
+    /// Returns true if the task's url is whitelisted
     fn filter(&self, task: &Task) -> bool {
-        // If there is a host string assign this to host-url, else return false
         if let Some(host_url) = task.url.host_str() {
             let host_url = host_url.to_string();
-            /* Iterates through whitelist and sees if the host_url contains a substring of any
-            entry in the whitelist, therefore all paths and sub-domains*/
+            // Check if the host_url contains a whitelisted substring
             for url in &self.urls {
                 if host_url.contains(url) {
                     return true;

@@ -7,6 +7,8 @@ use crate::errors::{ExtractError, ExtractResult};
 use crate::errors::ExtractErrorKind::ParsingError;
 use crate::traits::Extractor;
 
+/// The HTMLExtractorBase is an Extractor that converts a page of bytes (u8) to HTML and
+/// uses a HTMLExtractor to extract target data.
 pub struct HTMLExtractorBase<D, H: HTMLExtractor<D>> {
     _marker: PhantomData<D>,
     html_extractor: H,
@@ -27,6 +29,8 @@ where
 }
 
 impl<D, H: HTMLExtractor<D>> HTMLExtractorBase<D, H> {
+    /// Construct a new HTMLExtractorBase that extracts Urls and target data with the given
+    /// HTMLExtractor
     pub fn new(html_extractor: H) -> HTMLExtractorBase<D, H> {
         HTMLExtractorBase {
             _marker: PhantomData,
@@ -35,15 +39,19 @@ impl<D, H: HTMLExtractor<D>> HTMLExtractorBase<D, H> {
     }
 }
 
+/// An HTMLExtractor extracts Urls and data from HTML.
 pub trait HTMLExtractor<D> {
     fn extract_from_html(&self, content: Html, url: &Url) -> ExtractResult<(Vec<Url>, Vec<D>)>;
 }
 
+/// The HTMLLinkExtractor is a HTMLExtractor that only extracts links and no data. It finds
+/// Urls by taking the href attributes of the anchor tags. 
 pub struct HTMLLinkExtractor {
     link_selector: Selector,
 }
 
 impl HTMLLinkExtractor {
+    /// Construct a new HTMLLinkExtractor
     pub fn new() -> HTMLLinkExtractor {
         HTMLLinkExtractor {
             link_selector: Selector::parse("a").expect("anchor tag selector"),
@@ -57,6 +65,8 @@ impl HTMLExtractor<()> for HTMLLinkExtractor {
         content: Html,
         reference_url: &Url,
     ) -> ExtractResult<(Vec<Url>, Vec<()>)> {
+        // Extract no data
+        // Urls are found in the href attributes of anchor tags
         let tasks: Vec<Url> = content
             .select(&self.link_selector)
             .filter_map(|element| element.value().attr("href"))
