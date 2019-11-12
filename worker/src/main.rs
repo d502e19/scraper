@@ -140,6 +140,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             .value_name("QUEUE")
             .help("Specify the RabbitMQ queue to connect to")
     ).arg(
+        Arg::with_name("rabbitmq-collection-queue")
+            .short("c")
+            .long("rmq-collection")
+            .env("SCRAPER_RABBITMQ_COLLECTION_QUEUE")
+            .default_value("collection")
+            .value_name("COLLECTION")
+            .help("Specify the RabbitMQ collection queue to connect to")
+    ).arg(
         Arg::with_name("redis-set")
             .short("s")
             .long("redis-set")
@@ -220,6 +228,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("rabbitmq-prefetch-count").unwrap().parse().expect("Failed parsing prefetch count to u16"), // Parse str to u16
             args.value_of("rabbitmq-routing-key").unwrap().to_string(),
             args.value_of("rabbitmq-queue").unwrap().to_string(),
+            args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),
         )
         .expect("Failed to construct RMQRedisManager");
