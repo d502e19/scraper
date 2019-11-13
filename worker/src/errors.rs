@@ -6,15 +6,15 @@ use crate::traits::TaskProcessResult;
 #[derive(Debug)]
 pub enum ManagerErrorKind {
     NetworkError,        // No internet
-    UnreachableError,    // No responds
+    UnreachableError,    // No response
     InvalidTask,         // Task is not correct
 }
 
 #[derive(Debug)]
 pub enum DownloadErrorKind {
     NetworkError,        // No internet
-    UnreachableError,    // No responds
-    InvalidURL,          // URL is invalid
+    UnreachableError,    // No response
+    InvalidURL,          // Url is invalid
     InvalidPage,         // Could not make sense of downloaded material
 }
 
@@ -31,7 +31,7 @@ pub enum NormaliseErrorKind {
 #[derive(Debug)]
 pub enum ArchiveErrorKind {
     NetworkError,        // No internet
-    UnreachableError,    // No responds
+    UnreachableError,    // No response
     ServerError,         // Backend received data, but was unable to process it
     InvalidData,         // Data is invalid
 }
@@ -236,8 +236,6 @@ impl Display for ArchiveErrorKind {
 
 #[cfg(test)]
 mod tests {
-    use std::fmt::Display;
-
     use crate::errors::{ArchiveError, ArchiveErrorKind, DownloadError, DownloadErrorKind, ExtractError, ExtractErrorKind, ManagerError, ManagerErrorKind, NormaliseError, NormaliseErrorKind};
 
     /// Testing formatting of ManagerError without source error

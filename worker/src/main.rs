@@ -11,12 +11,11 @@ extern crate tokio;
 use std::error::Error;
 use std::io::ErrorKind;
 
-use clap::{App, AppSettings, Arg, ArgMatches};
-use log::Level;
+use clap::{App, Arg};
 use log::LevelFilter;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::append::file::FileAppender;
-use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
 use crate::defaultnormaliser::DefaultNormaliser;
@@ -118,20 +117,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             .help("Specify the RabbitMQ exchange to connect to")
     ).arg(
         Arg::with_name("rabbitmq-prefetch-count")
-            .short("c")
+            .short("n")
             .long("rmq-prefetch-count")
             .env("SCRAPER_RABBITMQ_PREFETCH_COUNT")
             .default_value("5")
             .value_name("COUNT")
             .help("Specify the number of tasks to prefetch")
-    ).arg(
-        Arg::with_name("rabbitmq-routing-key")
-            .short("k")
-            .long("rmq-routing-key")
-            .env("SCRAPER_RABBITMQ_ROUTING_KEY")
-            .default_value("") // No routing-key by default
-            .value_name("KEY")
-            .help("Specify the RabbitMQ routing-key to connect to")
     ).arg(
         Arg::with_name("rabbitmq-queue")
             .short("q")
@@ -212,20 +203,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
     )) {
         info!(
-            "Starting worker module using RabbitMQ({:?}) and redis({:?})",
+            "Starting worker module using RabbitMQ({}:{}) and redis({}:{})",
             args.value_of("rmq-address").unwrap().to_string(),
-            args.value_of("redis-address").unwrap().to_string()
+            args.value_of("rabbitmq-port").unwrap().to_string(),
+            args.value_of("redis-address").unwrap().to_string(),
+            args.value_of("redis-port").unwrap().to_string(),
         );
 
         // Construct a worker and its components
         let manager = RMQRedisManager::new(
             args.value_of("rmq-address").unwrap().to_string(),
-            args.value_of("rabbitmq-port").unwrap().parse().unwrap(), // Parse str to u16
+            args.value_of("rabbitmq-port").unwrap().parse().expect("Failed parsing Rabbitmq port to u16"), // Parse str to u16
             args.value_of("redis-address").unwrap().to_string(),
-            args.value_of("redis-port").unwrap().parse().unwrap(), // Parse str to u16
+            args.value_of("redis-port").unwrap().parse().expect("Failed parsing Redis port to u16"), // Parse str to u16
             args.value_of("rabbitmq-exchange").unwrap().to_string(),
-            args.value_of("rabbitmq-prefetch-count").unwrap().parse().unwrap(), // Parse str to u16
-            args.value_of("rabbitmq-routing-key").unwrap().to_string(),
+            args.value_of("rabbitmq-prefetch-count").unwrap().parse().expect("Failed parsing prefetch count to u16"), // Parse str to u16
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),

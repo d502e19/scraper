@@ -1,13 +1,12 @@
-use std::error::Error;
 use std::io::Read;
 
 use reqwest;
 use reqwest::Client;
 
-use crate::errors::{DownloadError, DownloadErrorKind, DownloadResult};
+use crate::errors::{DownloadError, DownloadResult};
+use crate::errors::DownloadErrorKind::{InvalidPage, NetworkError};
 use crate::task::Task;
 use crate::traits::Downloader;
-use crate::errors::DownloadErrorKind::{InvalidPage, NetworkError};
 
 /// A struct to access functions in downloader file
 /// Contains a reqwest client to send http requests

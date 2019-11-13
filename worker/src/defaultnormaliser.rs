@@ -1,18 +1,16 @@
-use crate::task::Task;
 use crate::traits::Normaliser;
 
-use std::error::Error;
-use std::fmt;
 use url::Url;
 use url_normalizer;
-use rand::seq::index::sample;
-use crate::errors::{NormaliseResult, NormaliseError, NormaliseErrorKind};
+use crate::errors::{NormaliseResult, NormaliseError};
 use crate::errors::NormaliseErrorKind::ParsingError;
 
+/// The DefaultNormaliser is a Normaliser that normalises URI's as described by
+/// RFC 3986 (https://tools.ietf.org/html/rfc3986) without changing the semantics.
 pub struct DefaultNormaliser;
 
 impl Normaliser for DefaultNormaliser {
-    /// Normalising the tasks URL by setting scheme and path to lowercase,
+    /// Normalising the tasks Url by setting scheme and path to lowercase,
     /// removing the dot in path, removes hash from url and ordering the query.
     fn normalise(&self, url: Url) -> NormaliseResult<Url> {
         DefaultNormaliser::full_normalisation(url)
@@ -24,8 +22,8 @@ impl DefaultNormaliser {
     fn full_normalisation(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
 
-        //Normalising by ordering the query in alphabetic order,
-        //removes hash from url and changes encrypted to unencrypted.
+        // Normalising by ordering the query in alphabetic order,
+        // removes hash from url and changes encrypted to unencrypted.
         new_url = url_normalizer::normalize(new_url).map_err(|_| {
             NormaliseError::new(ParsingError, "Failed to normalise using url library", None)
         })?;
@@ -37,7 +35,7 @@ impl DefaultNormaliser {
         Ok(new_url)
     }
 
-    ///Sets the scheme and host to lowercase
+    /// Sets the scheme and host to lowercase
     fn scheme_and_host_to_lowercase(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
 
@@ -111,11 +109,12 @@ impl DefaultNormaliser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::task::Task;
 
     #[test]
     fn test_empty_path_to_slash() {
         let expected_url = "http://example.com/";
-        let mut test_task = Task {
+        let test_task = Task {
             url: Url::parse("http://example.com").unwrap()
         };
 
@@ -127,7 +126,7 @@ mod tests {
     #[test]
     fn test_converting_encoded_triplets_to_upper() {
         let expected_url = "http://example.com/foo%2A";
-        let mut test_task = Task {
+        let test_task = Task {
             url: Url::parse("http://example.com/foo%2a").unwrap()
         };
 
@@ -159,13 +158,7 @@ mod tests {
 
         let test_url = DefaultNormaliser::scheme_and_host_to_lowercase(test_task.url).unwrap();
 
-        let test_scheme = test_url.scheme();
-        let test_host = test_url.host_str().unwrap();
-
-        let expected_scheme = "https";
-        let expected_host = "sub.host.com";
-
-        assert_eq!(test_scheme, expected_scheme);
+        assert_eq!("https", test_url.scheme());
     }
 
     #[test]
@@ -177,13 +170,7 @@ mod tests {
 
         let test_url = DefaultNormaliser::scheme_and_host_to_lowercase(test_task.url).unwrap();
 
-        let test_scheme = test_url.scheme();
-        let test_host = test_url.host_str().unwrap();
-
-        let expected_scheme = "https";
-        let expected_host = "sub.host.com";
-
-        assert_eq!(test_host, expected_host);
+        assert_eq!("sub.host.com", test_url.host_str().unwrap());
     }
 
     #[test]

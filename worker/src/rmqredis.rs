@@ -1,5 +1,4 @@
 use std::io::{Error, ErrorKind};
-use std::str::from_utf8;
 
 use futures::future::Future;
 use futures::stream::Stream;
@@ -9,10 +8,9 @@ use lapin_futures::options::{
     QueueBindOptions, QueueDeclareOptions, BasicQosOptions,
 };
 use lapin_futures::types::FieldTable;
-use redis::{Commands, FromRedisValue, RedisError, RedisResult, RedisWrite, ToRedisArgs, Value};
-use url::Url;
+use redis::{Commands, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
 
-use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
+use crate::errors::{ManagerError, ManagerResult};
 use crate::errors::ManagerErrorKind::UnreachableError;
 use crate::task::Task;
 use crate::traits::{Manager, TaskProcessResult};
@@ -20,8 +18,8 @@ use crate::traits::{Manager, TaskProcessResult};
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
     fn write_redis_args<W>(&self, out: &mut W)
-        where
-            W: ?Sized + RedisWrite,
+    where
+        W: ?Sized + RedisWrite,
     {
         out.write_arg(self.url.as_str().as_bytes())
     }
@@ -32,20 +30,21 @@ impl FromRedisValue for Task {
     fn from_redis_value(v: &Value) -> Result<Self, RedisError> {
         match *v {
             Value::Data(ref bytes) => {
-                let result = Task::deserialise(bytes.to_owned());
-                match result {
-                    Ok(task) => Ok(task),
-                    Err(e) => Err(RedisError::from(Error::new(ErrorKind::Other, "failed to deserialise")))
-                }
+                Task::deserialise(bytes.to_owned())
+                    .map_err(|_| RedisError::from(Error::new(ErrorKind::Other, "Failed to deserialise task")))
             }
             _ => Err(RedisError::from(Error::new(
                 ErrorKind::Other,
                 "Response could not be translated to a task",
-            ))),
+            )))
         }
     }
 }
 
+/// The RMQRedisManager is a Manager for a distributed web crawler that uses RabbitMQ and Redis.
+/// Tasks are submitted to a RMQ exchange and received from a RMQ queue.
+/// When checking if a task has already been submitted, the RQMRedisManager will ask Redis if
+/// the task is in a given set.
 pub struct RMQRedisManager {
     rmq_addr: String,
     rmq_port: u16,
@@ -55,11 +54,11 @@ pub struct RMQRedisManager {
     frontier_queue: Queue,
     exchange: String,
     prefetch_count: u16,
-    routing_key: String,
     redis_set: String,
 }
 
 impl RMQRedisManager {
+    /// Construct a new RMQRedisManager
     pub fn new(
         rmq_addr: String,
         rmq_port: u16,
@@ -67,15 +66,14 @@ impl RMQRedisManager {
         redis_port: u16,
         exchange: String,
         prefetch_count: u16,
-        routing_key: String,
         frontier_queue_name: String,
         collection_queue_name: String,
         redis_set: String,
     ) -> Result<RMQRedisManager, ()> {
         debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
-            \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\n\trmq_routing_key: {:?}\
+            \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\
             \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}"
-               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, routing_key, frontier_queue_name, collection_queue_name, redis_set);
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, frontier_queue_name, collection_queue_name, redis_set);
 
        let client = Client::connect(
             format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
@@ -90,7 +88,7 @@ impl RMQRedisManager {
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
 
-        let collection_queue = channel.queue_declare(
+        channel.queue_declare(
             collection_queue_name.as_str(),
             QueueDeclareOptions::default(),
             FieldTable::default(),
@@ -106,7 +104,7 @@ impl RMQRedisManager {
         channel.queue_bind(
             frontier_queue_name.as_str(),
             exchange.as_str(),
-            routing_key.as_str(),
+            "",
             QueueBindOptions::default(),
             FieldTable::default(),
         ).wait().map_err(|_| ())?;
@@ -114,7 +112,7 @@ impl RMQRedisManager {
         channel.queue_bind(
             collection_queue_name.as_str(),
             exchange.as_str(),
-            routing_key.as_str(),
+            "",
             QueueBindOptions::default(),
             FieldTable::default(),
         ).wait().map_err(|_|())?;
@@ -134,19 +132,19 @@ impl RMQRedisManager {
             frontier_queue,
             exchange,
             prefetch_count,
-            routing_key,
             redis_set,
         })
     }
 }
 
 impl Manager for RMQRedisManager {
+    /// Submit a new task. The task must be checked if new before submission.
     fn submit_task(&self, task: &Task) -> ManagerResult<()> {
         let result = self
             .channel
             .basic_publish(
                 self.exchange.as_str(),
-                self.routing_key.as_str(),
+                "",
                 task.serialise(),
                 BasicPublishOptions::default(),
                 BasicProperties::default(),
@@ -156,35 +154,37 @@ impl Manager for RMQRedisManager {
         result.map_err(|e| ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))
     }
 
+    /// Start resolving tasks with the given resolve function
     fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
         self.channel
             .basic_consume(
                 &self.frontier_queue,
-                "", //TODO
+                "",
                 BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
             .and_then(move |consumer| {
-                consumer.for_each(move |delivery| {
-                    let task_res = Task::deserialise(delivery.data);
-                    match task_res {
-                        Err(e) => {
-                            self.channel.basic_reject(delivery.delivery_tag, BasicRejectOptions::default())
+                // Resolve each message received
+                consumer.for_each(move |msg| {
+                    match Task::deserialise(msg.data) {
+                        Err(_) => {
+                            // Deserialisation failed. Discard the task
+                            self.channel.basic_reject(msg.delivery_tag, BasicRejectOptions::default())
                         }
                         Ok(task) => {
-                            let result = resolve_func(task);
-                            match result {
+                            // Resolve task
+                            match resolve_func(task) {
                                 TaskProcessResult::Ok => {
-                                    self.channel.basic_ack(delivery.delivery_tag, false)
+                                    self.channel.basic_ack(msg.delivery_tag, false)
                                 }
                                 TaskProcessResult::Err => self
                                     .channel
                                     // Do not requeue task if error is met
-                                    .basic_reject(delivery.delivery_tag, BasicRejectOptions { requeue: false }),
+                                    .basic_reject(msg.delivery_tag, BasicRejectOptions::default()),
                                 TaskProcessResult::Reject => self
                                     .channel
-                                    // Do requeue task if error is met
-                                    .basic_reject(delivery.delivery_tag, BasicRejectOptions { requeue: true }),
+                                    // Requeue task if error is met
+                                    .basic_reject(msg.delivery_tag, BasicRejectOptions::default()),
                             }
                         }
                     }
@@ -194,16 +194,19 @@ impl Manager for RMQRedisManager {
             .unwrap();
     }
 
+    /// Closes the manager and its connections
     fn close(self) -> ManagerResult<()> {
-        self.channel.close(0, "called close()");
+        self.channel.close(0, "Manager was closed by calling close()");
         Ok(())
     }
 
+    /// Checks if a task has already been submitted
     fn contains(&self, task: &Task) -> ManagerResult<bool> {
         let client_result =
             redis::Client::open(format!("redis://{}:{}/", self.redis_addr, self.redis_port).as_str());
         if let Ok(client) = client_result {
             if let Ok(mut con) = client.get_connection() {
+                // Check if the task is a member of the collection
                 let found_result = con.sismember(self.redis_set.as_str(), task);
                 if let Ok(found) = found_result {
                     return Ok(found);

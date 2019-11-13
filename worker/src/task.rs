@@ -1,16 +1,20 @@
 use url::Url;
 use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
 
+/// Tasks are the workload instances assigned to Workers. It describes a single Url that needs
+/// to be resolved by the web scraper.
 #[derive(Hash, Eq, Debug)]
 pub struct Task {
     pub url: Url,
 }
 
 impl Task {
+    /// Serialise the Task into bytes which makes it easier to transfer
     pub fn serialise(&self) -> Vec<u8> {
         self.url.as_str().as_bytes().to_vec()
     }
 
+    /// Deserialise a series of bytes into a Task
     pub fn deserialise(data: Vec<u8>) -> ManagerResult<Self> {
         let data_to_string_res = String::from_utf8(data);
         // checks if there is an error when changing data to a string
@@ -29,6 +33,7 @@ impl Task {
 }
 
 impl PartialEq for Task {
+    // Two tasks are equal if they have the same Url
     fn eq(&self, other: &Self) -> bool {
         self.url == other.url
     }
@@ -63,7 +68,7 @@ mod tests {
         assert_ne!(task1_regen, task2_regen);
     }
 
-    /// Equality between two identical URLs
+    /// Equality between two identical Urls
     #[test]
     fn normalisation_equality_1() {
         let task1 = task::Task { url: Url::parse("http://aau.dk").unwrap() };
@@ -95,7 +100,7 @@ mod tests {
         assert_ne!(task1, task2)
     }
 
-    /// Domain labels change semantics and as such these two URLs are inequal
+    /// Domain labels change semantics and as such these two Urls are inequal
     #[test]
     fn normalisation_inequality_2() {
         let task1 = task::Task { url: Url::parse("https://aau.dk").unwrap() };

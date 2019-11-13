@@ -23,8 +23,7 @@ pub struct Worker<S, D> {
     _data_type_marker: PhantomData<D>,
 }
 
-
-impl<'a, S, D> Worker<S, D> {
+impl<S, D> Worker<S, D> {
     /// Create a new worker with the given components.
     pub fn new(
         name: &str,

@@ -178,9 +178,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             )
                 .as_str(),
         )
-            .unwrap();
-        let con = redis_client.get_connection();
-        match con {
+            .expect("Could not open a Redis client");
+        match redis_client.get_connection() {
             Ok(mut connection) => {
                 // Establish a connection to RabbitMQ using env-var or passed arg
                 let rmq_addr = format!(
@@ -189,7 +188,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     args.value_of("rmq-port").unwrap(),
                 );
                 let client = Client::connect(&rmq_addr, ConnectionProperties::default()).wait()?;
-                // Finds collection and sees the tasks
+                // Declare the collection queue
                 let channel = client.create_channel().wait()?;
                 let queue = channel
                     .queue_declare(
