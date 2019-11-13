@@ -5,6 +5,7 @@ use url_normalizer;
 use crate::errors::{NormaliseResult, NormaliseError};
 use crate::errors::NormaliseErrorKind::ParsingError;
 
+
 /// The DefaultNormaliser is a Normaliser that normalises URI's as described by
 /// RFC 3986 (https://tools.ietf.org/html/rfc3986) without changing the semantics.
 pub struct DefaultNormaliser;
@@ -58,9 +59,26 @@ impl DefaultNormaliser {
     /// From: "http://example.com/foo%2a"
     /// To: "http://example.com/foo%2A"
     fn converting_encoded_triplets_to_upper(url: Url) -> NormaliseResult<Url> {
-        let new_url = url;
+        let mut new_url = url;
+
+        let mut path = DefaultNormaliser::find_replace_convert(new_url.path());
+        new_url.set_path(path.as_str());
+
+        if new_url.query().is_some() {
+            let mut query = DefaultNormaliser::find_replace_convert(new_url.query().unwrap());
+             new_url.set_query(Option::Some(query.as_str()));
+        }
+
+        if new_url.fragment().is_some() {
+            let mut fragment = DefaultNormaliser::find_replace_convert(new_url.fragment().unwrap());
+            new_url.set_fragment(Option::Some(fragment.as_str()));
+        }
+        Ok(new_url)
+    }
+
+    fn find_replace_convert(some_str : &str) -> String{
         let mut str_build = "".to_string();
-        let some_chars = new_url.as_str().chars();
+        let some_chars = some_str.chars();
         let mut counter = 0;
 
         // Iterating through all characters in the url
@@ -81,10 +99,7 @@ impl DefaultNormaliser {
             }
         }
 
-        // Parse the built string as an url for return
-        Url::parse(str_build.as_str()).map_err(|e| {
-            NormaliseError::new(ParsingError, "Failed converting triplets to uppercase", Some(Box::new(e)))
-        })
+        str_build
     }
 
     /// Converting an empty path to a slash. Example:
