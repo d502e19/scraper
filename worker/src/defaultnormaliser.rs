@@ -29,9 +29,14 @@ impl DefaultNormaliser {
             NormaliseError::new(ParsingError, "Failed to normalise using url library", None)
         })?;
 
+        /*
+        The parser operation given by the Url-crate features an automatically normalisation of the given string,
+        because that is the case, there are no need for the below functions.
+
         new_url = DefaultNormaliser::scheme_and_host_to_lowercase(new_url)?;
         new_url = DefaultNormaliser::converting_encoded_triplets_to_upper(new_url)?;
         new_url = DefaultNormaliser::empty_path_to_slash(new_url)?;
+        */
 
         Ok(new_url)
     }
@@ -197,6 +202,6 @@ mod tests {
 
         let test_url = DefaultNormaliser::scheme_and_host_to_lowercase(test_task.url).unwrap();
 
-        assert_eq!(test_url.has_host(), false)
+        assert_eq!(test_task.url.has_host(), false)
     }
 }
