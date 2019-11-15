@@ -74,6 +74,8 @@ impl DefaultNormaliser {
         Ok(new_url)
     }
 
+    /// This function look for "%" and then convert the
+    /// following two letters to uppercase for a given string.
     fn converting_encoded_triplet_to_upper_for_str(some_str : &str) -> String{
         let mut str_build = "".to_string();
         let some_chars = some_str.chars();
