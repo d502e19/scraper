@@ -29,18 +29,11 @@ impl DefaultNormaliser {
             NormaliseError::new(ParsingError, "Failed to normalise using url library", None)
         })?;
 
-        /*
-        The parser operation given by the Url-crate features an automatically normalisation of the given string,
-        because that is the case, there are no need for the below functions.
-
-        new_url = DefaultNormaliser::scheme_and_host_to_lowercase(new_url)?;
-        new_url = DefaultNormaliser::converting_encoded_triplets_to_upper(new_url)?;
-        new_url = DefaultNormaliser::empty_path_to_slash(new_url)?;
-        */
-
         Ok(new_url)
     }
 
+    //The parser operation given by the Url-crate features an automatically normalisation of the given string,
+    //because that is the case, there are no need for the below functions.
     /// Sets the scheme and host to lowercase
     fn scheme_and_host_to_lowercase(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
@@ -63,25 +56,25 @@ impl DefaultNormaliser {
     /// Converting encoded triplets to uppercase, example:
     /// From: "http://example.com/foo%2a"
     /// To: "http://example.com/foo%2A"
-    fn converting_encoded_triplets_to_upper(url: Url) -> NormaliseResult<Url> {
+    fn converting_encoded_triplets_to_upper_for_url(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
 
-        let mut path = DefaultNormaliser::find_replace_convert(new_url.path());
+        let mut path = DefaultNormaliser::converting_encoded_triplet_to_upper_for_str(new_url.path());
         new_url.set_path(path.as_str());
 
         if new_url.query().is_some() {
-            let mut query = DefaultNormaliser::find_replace_convert(new_url.query().unwrap());
+            let mut query = DefaultNormaliser::converting_encoded_triplet_to_upper_for_str(new_url.query().unwrap());
              new_url.set_query(Option::Some(query.as_str()));
         }
 
         if new_url.fragment().is_some() {
-            let mut fragment = DefaultNormaliser::find_replace_convert(new_url.fragment().unwrap());
+            let mut fragment = DefaultNormaliser::converting_encoded_triplet_to_upper_for_str(new_url.fragment().unwrap());
             new_url.set_fragment(Option::Some(fragment.as_str()));
         }
         Ok(new_url)
     }
 
-    fn find_replace_convert(some_str : &str) -> String{
+    fn converting_encoded_triplet_to_upper_for_str(some_str : &str) -> String{
         let mut str_build = "".to_string();
         let some_chars = some_str.chars();
         let mut counter = 0;
@@ -150,7 +143,7 @@ mod tests {
             url: Url::parse("http://example.com/foo%2a").unwrap()
         };
 
-        let test_url = DefaultNormaliser::converting_encoded_triplets_to_upper(test_task.url).unwrap();
+        let test_url = DefaultNormaliser::converting_encoded_triplets_to_upper_for_url(test_task.url).unwrap();
 
         assert_eq!(test_url.to_string(), expected_url);
     }
