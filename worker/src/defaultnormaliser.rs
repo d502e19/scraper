@@ -197,6 +197,6 @@ mod tests {
 
         let test_url = DefaultNormaliser::scheme_and_host_to_lowercase(test_task.url).unwrap();
 
-        assert_eq!(test_task.url.has_host(), false)
+        assert_eq!(test_url.has_host(), false)
     }
 }
