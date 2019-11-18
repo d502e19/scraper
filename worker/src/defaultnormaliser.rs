@@ -14,13 +14,6 @@ impl Normaliser for DefaultNormaliser {
     /// Normalising the tasks Url by setting scheme and path to lowercase,
     /// removing the dot in path, removes hash from url and ordering the query.
     fn normalise(&self, url: Url) -> NormaliseResult<Url> {
-        DefaultNormaliser::full_normalisation(url)
-    }
-}
-
-impl DefaultNormaliser {
-    /// Run through all implemented normalisation functions and applying those on the given url.
-    fn full_normalisation(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
 
         // Normalising by ordering the query in alphabetic order,
@@ -29,9 +22,17 @@ impl DefaultNormaliser {
             NormaliseError::new(ParsingError, "Failed to normalise using url library", None)
         })?;
 
+        // Converting encoded triplets to uppercase
+        new_url = DefaultNormaliser::converting_encoded_triplets_to_upper_for_url(new_url)?;
+
+        // Sets the scheme and host to lowercase
+        new_url = DefaultNormaliser::scheme_and_host_to_lowercase(new_url)?;
+
         Ok(new_url)
     }
+}
 
+impl DefaultNormaliser {
     //The parser operation given by the Url-crate features an automatically normalisation of the given string,
     //because that is the case, there are no need for the below functions.
     /// Sets the scheme and host to lowercase
@@ -101,23 +102,6 @@ impl DefaultNormaliser {
 
         str_build
     }
-
-    /// Converting an empty path to a slash. Example:
-    /// From: "http://example.com"
-    /// To: "http://example.com/"
-    fn empty_path_to_slash(url: Url) -> NormaliseResult<Url> {
-        let new_url = url;
-        let url_as_str = new_url.as_str();
-
-        if url_as_str.ends_with("/") || !new_url.path().is_empty() {
-            Ok(new_url)
-        } else {
-            url_as_str.to_string().push_str("/");
-            Url::parse(url_as_str).map_err(|e| {
-                NormaliseError::new(ParsingError, "Failed adding '/' for empty path", Some(Box::new(e)))
-            })
-        }
-    }
 }
 
 
@@ -133,7 +117,7 @@ mod tests {
             url: Url::parse("http://example.com").unwrap()
         };
 
-        let test_url = DefaultNormaliser::empty_path_to_slash(test_task.url).unwrap();
+        let test_url = DefaultNormaliser.normalise(test_task.url).unwrap();
 
         assert_eq!(test_url.to_string(), expected_url);
     }
