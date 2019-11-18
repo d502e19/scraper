@@ -1,4 +1,5 @@
 use std::io::{Error, ErrorKind};
+use std::sync::{Mutex};
 
 use futures::future::Future;
 use futures::stream::Stream;
@@ -8,7 +9,7 @@ use lapin_futures::options::{
     QueueBindOptions, QueueDeclareOptions, BasicQosOptions,
 };
 use lapin_futures::types::FieldTable;
-use redis::{Commands, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
+use redis::{Commands, Connection, ConnectionAddr, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value, ConnectionInfo, IntoConnectionInfo};
 
 use crate::errors::{ManagerError, ManagerResult};
 use crate::errors::ManagerErrorKind::UnreachableError;
@@ -54,6 +55,7 @@ pub struct RMQRedisManager {
     frontier_queue: Queue,
     exchange: String,
     prefetch_count: u16,
+    redis_connection: Mutex<Connection>,
     redis_set: String,
 }
 
@@ -75,7 +77,7 @@ impl RMQRedisManager {
             \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}"
                , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, frontier_queue_name, collection_queue_name, redis_set);
 
-       let client = Client::connect(
+        let client = Client::connect(
             format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
             ConnectionProperties::default(),
         ).wait().map_err(|_| ())?;
@@ -123,6 +125,14 @@ impl RMQRedisManager {
             BasicQosOptions::default(),
         ).wait().map_err(|_| ())?;
 
+        // Establish sentinel Redis connection
+        let connection_info = format!("redis://{}:{}/", redis_addr, redis_port).as_str()
+            .into_connection_info()
+            .map_err(|_| ())?;
+        let redis_connection = Mutex::new(
+            create_sentinel_redis_connection(connection_info)?
+        );
+
         Ok(RMQRedisManager {
             rmq_addr,
             rmq_port,
@@ -132,6 +142,7 @@ impl RMQRedisManager {
             frontier_queue,
             exchange,
             prefetch_count,
+            redis_connection,
             redis_set,
         })
     }
@@ -202,17 +213,33 @@ impl Manager for RMQRedisManager {
 
     /// Checks if a task has already been submitted
     fn contains(&self, task: &Task) -> ManagerResult<bool> {
-        let client_result =
-            redis::Client::open(format!("redis://{}:{}/", self.redis_addr, self.redis_port).as_str());
-        if let Ok(client) = client_result {
-            if let Ok(mut con) = client.get_connection() {
-                // Check if the task is a member of the collection
-                let found_result = con.sismember(self.redis_set.as_str(), task);
-                if let Ok(found) = found_result {
-                    return Ok(found);
-                }
-            }
-        }
-        Err(ManagerError::new(UnreachableError, "Could not reach manager.", None))
+        let mut con = self.redis_connection.lock().expect("Redis connection mutex was corruption");
+
+        // Check if the task is a member of the collection
+        con.sismember(self.redis_set.as_str(), task)
+            .map_err(|e| ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))
     }
+}
+
+/// Establishes a sentinel redis connection to the master group named 'master'
+fn create_sentinel_redis_connection(connection_info: ConnectionInfo) -> Result<Connection, ()> {
+    let mut client = redis::Client::open(connection_info.clone())
+        .map_err(|_| ())?;
+
+    // Get address and port of Redis master
+    let (master_addr, master_port): (String, u16) = redis::cmd("SENTINEL")
+        .arg("get-master-addr-by-name")
+        .arg("master")
+        .query(&mut client)
+        .map_err(|_| ())?;
+
+    let sentinel_client = redis::Client::open(
+        ConnectionInfo {
+            addr: Box::new(ConnectionAddr::Tcp(master_addr, master_port)),
+            ..connection_info
+        },
+    ).map_err(|_| ())?;
+
+    sentinel_client.get_connection()
+        .map_err(|_| ())
 }
