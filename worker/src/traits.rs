@@ -58,7 +58,7 @@ pub trait Filter {
 
 /// The Archive stores the target data D
 pub trait Archive<D> {
-    fn archive_content(&self, content: D) -> ArchiveResult<()>;
+    fn archive_content(&self, content: Vec<D>) -> ArchiveResult<()>;
 }
 
 /// The Normaliser normalises URLs to avoid different Urls to the same page

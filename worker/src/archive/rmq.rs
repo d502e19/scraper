@@ -26,8 +26,8 @@ impl RabbitMQArchive {
     }
 }
 
-impl<D> Archive<D> for RabbitMQArchive where D: Into<Vec<u8>> {
-    fn archive_content(&self, content: D) -> ArchiveResult<()> {
+impl<D> Archive<D> for RabbitMQArchive where std::vec::Vec<u8>: std::convert::From<std::vec::Vec<D>> {
+    fn archive_content(&self, content: Vec<D>) -> ArchiveResult<()> {
         // Submit data to RabbitMQ
         let bytes = content.into();
         let res = self.channel.basic_publish(
