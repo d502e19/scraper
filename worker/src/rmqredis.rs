@@ -71,11 +71,12 @@ impl RMQRedisManager {
         frontier_queue_name: String,
         collection_queue_name: String,
         redis_set: String,
+        sentinel: bool,
     ) -> Result<RMQRedisManager, ()> {
         debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
             \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\
-            \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}"
-               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, frontier_queue_name, collection_queue_name, redis_set);
+            \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}\n\tsentinel: {:?}"
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, frontier_queue_name, collection_queue_name, redis_set, sentinel);
 
         let client = Client::connect(
             format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
@@ -125,12 +126,12 @@ impl RMQRedisManager {
             BasicQosOptions::default(),
         ).wait().map_err(|_| ())?;
 
-        // Establish sentinel Redis connection
+        // Establish Redis connection
         let connection_info = format!("redis://{}:{}/", redis_addr, redis_port).as_str()
             .into_connection_info()
             .map_err(|_| ())?;
         let redis_connection = Mutex::new(
-            create_sentinel_redis_connection(connection_info)?
+            create_redis_connection(connection_info, sentinel)?
         );
 
         Ok(RMQRedisManager {
@@ -221,25 +222,31 @@ impl Manager for RMQRedisManager {
     }
 }
 
-/// Establishes a sentinel redis connection to the master group named 'master'
-fn create_sentinel_redis_connection(connection_info: ConnectionInfo) -> Result<Connection, ()> {
+/// Establishes a redis connection. It if is sentinel it connects to the master group named 'master'
+fn create_redis_connection(connection_info: ConnectionInfo, sentinel: bool) -> Result<Connection, ()> {
     let mut client = redis::Client::open(connection_info.clone())
         .map_err(|_| ())?;
 
-    // Get address and port of Redis master
-    let (master_addr, master_port): (String, u16) = redis::cmd("SENTINEL")
-        .arg("get-master-addr-by-name")
-        .arg("master")
-        .query(&mut client)
-        .map_err(|_| ())?;
+    if sentinel {
+        // Get address and port of Redis master
+        let (master_addr, master_port): (String, u16) = redis::cmd("SENTINEL")
+            .arg("get-master-addr-by-name")
+            .arg("master")
+            .query(&mut client)
+            .map_err(|_| ())?;
 
-    let sentinel_client = redis::Client::open(
-        ConnectionInfo {
-            addr: Box::new(ConnectionAddr::Tcp(master_addr, master_port)),
-            ..connection_info
-        },
-    ).map_err(|_| ())?;
+        let sentinel_client = redis::Client::open(
+            ConnectionInfo {
+                addr: Box::new(ConnectionAddr::Tcp(master_addr, master_port)),
+                ..connection_info
+            },
+        ).map_err(|_| ())?;
 
-    sentinel_client.get_connection()
-        .map_err(|_| ())
+        return sentinel_client.get_connection()
+            .map_err(|_| ())
+
+    } else {
+        return client.get_connection()
+            .map_err(|_| ())
+    }
 }
