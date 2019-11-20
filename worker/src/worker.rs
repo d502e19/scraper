@@ -53,7 +53,7 @@ impl<S, D> Worker<S, D> {
     /// This is a blocking operation.
     pub fn start(&self) {
         info!("Worker {} has started", self.name);
-        self.manager.start_listening(&|task| {
+        self.manager.subscribe(&|task| {
             info!("Worker {} received task {}", self.name, task.url);
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
@@ -94,23 +94,20 @@ impl<S, D> Worker<S, D> {
                                 .map(|url| Task { url })
                                 .collect();
 
-                            // Check if extracted tasks are new, if they are, submit them
                             let filtered_tasks = self.filter.filter(tasks);
-                            for task in &filtered_tasks {
-                                    match self.manager.contains(task) {
-                                        Ok(exists) => {
-                                            if !exists {
-                                                if let Err(e) = self.manager.submit_task(task) {
-                                                    error!("{} failed submitting a new task to the manager. {}", self.name, e);
-                                                    return TaskProcessResult::from(e);
-                                                }
-                                            }
-                                        }
-                                        Err(e) => {
-                                            error!("{} failed to check if a new task is present in the collection. {}", self.name, e);
-                                            return TaskProcessResult::from(e);
-                                        }
+
+                            // Cull tasks that have already been submitted once, then submit the new tasks
+                            match self.manager.cull_known(filtered_tasks) {
+                                Ok(new_tasks) => {
+                                    if let Err(e) = self.manager.submit(new_tasks) {
+                                        error!("{} failed submitting new tasks to the manager. {}", self.name, e);
+                                        return TaskProcessResult::from(e);
                                     }
+                                }
+                                Err(e) => {
+                                    error!("{} failed to check if tasks are present in the collection. {}", self.name, e);
+                                    return TaskProcessResult::from(e);
+                                }
                             }
 
                             return TaskProcessResult::Ok;
