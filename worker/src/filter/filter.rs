@@ -8,9 +8,7 @@ use crate::traits::Filter;
 pub(crate) struct NoFilter;
 
 impl Filter for NoFilter {
-    fn filter(&self, _task: &Task) -> bool {
-        true
-    }
+    fn filter(&self, tasks: Vec<Task>) -> Vec<Task> { tasks }
 }
 
 /// A Blacklist is a Filter that will cull specific Urls
@@ -34,19 +32,21 @@ impl Blacklist {
 }
 
 impl Filter for Blacklist {
-    /// Returns true if the task's url is blacklisted
-    fn filter(&self, task: &Task) -> bool {
-        if let Some(host_url) = task.url.host_str() {
-            let host_url = host_url.to_string();
-            // Check if the host_url contains a blacklisted substring
-            for url in &self.urls {
-                if host_url.contains(url) {
-                    return false;
+    /// Removes all tasks which url is blacklisted
+    fn filter(&self, mut tasks: Vec<Task>) -> Vec<Task> {
+        return tasks.drain(..).filter(|task| {
+            // Return false if host_url is substring of any url in blacklist, else return true
+            if let Some(host_url) = task.url.host_str() {
+                let host_url = host_url.to_string();
+                // Check if the host_url contains a blacklisted substring
+                for url in &self.urls {
+                    if host_url.contains(url) {
+                        return false;
+                    }
                 }
             }
             return true;
-        }
-        return true;
+        }).collect();
     }
 }
 
@@ -70,20 +70,21 @@ impl Whitelist {
 }
 
 impl Filter for Whitelist {
-    /// Returns true if the task's url is whitelisted
-    fn filter(&self, task: &Task) -> bool {
-        if let Some(host_url) = task.url.host_str() {
-            let host_url = host_url.to_string();
-            // Check if the host_url contains a whitelisted substring
-            for url in &self.urls {
-                if host_url.contains(url) {
-                    return true;
+    /// Removes all tasks which url is not whitelisted
+    fn filter(&self, mut tasks: Vec<Task>) -> Vec<Task> {
+        return tasks.drain(..).filter(|task| {
+            // Return true if host_url is substring of any url in whitelist, else return false
+            if let Some(host_url) = task.url.host_str() {
+                let host_url = host_url.to_string();
+                // Check if the host_url contains a whitelisted substring
+                for url in &self.urls {
+                    if host_url.contains(url) {
+                        return true;
+                    }
                 }
             }
             return false;
-        }
-        // If no host url in task, e.g if task is an email address, return false
-        return false;
+        }).collect();
     }
 }
 
@@ -132,7 +133,8 @@ fn write_to_filter_file(url: String, path: String) -> bool {
 mod tests {
     use url::Url;
 
-    use crate::filter::filter::{Blacklist, Whitelist};
+    use crate::filter::filter::{Blacklist, NoFilter, Whitelist};
+    use crate::task;
     use crate::task::Task;
     use crate::traits::Filter;
 
@@ -142,31 +144,117 @@ mod tests {
         vec!["reddit.com", "bbc.co.uk", "dr.dk"].iter().map(|f| f.to_string()).collect()
     }
 
-    /// Test that looking up a Url that is contained in whitelist returns true
+    /// Test that task with Url in whitelist is passes through filter
+    /// "http://reddit.com" is in whitelist
     #[test]
     fn whitelist_test_01() {
         let whitelist = Whitelist::new_from_vec(get_predefined_list());
-        assert!(whitelist.filter(&Task { url: Url::parse("http://reddit.com").unwrap() }))
+        let task = task::Task { url: Url::parse("http://reddit.com").unwrap() };
+        let tasks: Vec<Task> = vec![task];
+
+        let expected = task::Task { url: Url::parse("http://reddit.com").unwrap() };
+        assert!(whitelist.filter(tasks).contains(&expected))
     }
 
-    /// Test that looking up a Url that is NOT contained in whitelist returns false
+    /// Test that task with Url not in whitelist is filtered out
+    /// "http://tv2.dk" is not in whitelist
     #[test]
     fn whitelist_test_02() {
         let whitelist = Whitelist::new_from_vec(get_predefined_list());
-        assert!(!whitelist.filter(&Task { url: Url::parse("http://tv2.dk").unwrap() }))
+        let task = task::Task { url: Url::parse("http://tv2.dk").unwrap() };
+        let tasks: Vec<Task> = vec![task];
+
+        let expected = task::Task { url: Url::parse("http://tv2.dk").unwrap() };
+        assert!(!whitelist.filter(tasks).contains(&expected))
     }
 
-    /// Test that looking up a Url that is contained in blacklist returns false
+    /// Test that tasks with Urls in whitelist passes through filter, other tasks don't
+    /// "http://bbc.co.uk" is in whitelist, ""http://okboomer.dk" is not
+    #[test]
+    fn whitelist_test_03() {
+        let whitelist = Whitelist::new_from_vec(get_predefined_list());
+        let task = task::Task { url: Url::parse("http://bbc.co.uk").unwrap() };
+        let task1 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
+        let tasks: Vec<Task> = vec![task, task1];
+        let filtered_tasks = whitelist.filter(tasks);
+
+        let task = task::Task { url: Url::parse("http://bbc.co.uk").unwrap() };
+        let task1 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
+
+        assert!(filtered_tasks.contains(&task));
+        assert!(!filtered_tasks.contains(&task1));
+    }
+
+    /// Test that task with Url in blacklist is filtered out
+    /// "reddit.com" is in blacklist, should not pass through
     #[test]
     fn blacklist_test_01() {
         let blacklist = Blacklist::new_from_vec(get_predefined_list());
-        assert!(!blacklist.filter(&Task { url: Url::parse("http://reddit.com").unwrap() }))
+        let task = task::Task { url: Url::parse("http://reddit.com").unwrap() };
+        let tasks: Vec<Task> = vec![task];
+
+        let expected = task::Task { url: Url::parse("http://reddit.com").unwrap() };
+        assert!(!blacklist.filter(tasks).contains(&expected))
     }
 
-    /// Test that looking up a Url that is NOT contained in blacklist returns true
+    /// Test that task with Url not in blacklist passes through filter
+    /// "http://tv2.dk" is not in blacklist, should pass through
     #[test]
     fn blacklist_test_02() {
         let blacklist = Blacklist::new_from_vec(get_predefined_list());
-        assert!(blacklist.filter(&Task { url: Url::parse("http://tv2.dk").unwrap() }))
+        let task = task::Task { url: Url::parse("http://tv2.dk").unwrap() };
+        let tasks: Vec<Task> = vec![task];
+
+        let expected = task::Task { url: Url::parse("http://tv2.dk").unwrap() };
+        assert!(blacklist.filter(tasks).contains(&expected))
+    }
+
+    /// Test that tasks with Urls in blacklist passes through filter, other tasks don't
+    /// "http://reddit.com" is in blacklist, ""http://okboomer.dk" is not
+    #[test]
+    fn blacklist_test_03() {
+        let blacklist = Blacklist::new_from_vec(get_predefined_list());
+        let task = task::Task { url: Url::parse("http://reddit.com").unwrap() };
+        let task1 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
+        let tasks: Vec<Task> = vec![task, task1];
+
+        let task = task::Task { url: Url::parse("http://reddit.com").unwrap() };
+        let task1 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
+
+        let filtered_tasks = blacklist.filter(tasks);
+
+        assert!(!filtered_tasks.contains(&task));
+        assert!(filtered_tasks.contains(&task1));
+    }
+
+    /// Test that nofilter will allow all Urls to pass through filter
+    #[test]
+    fn nofilter_test_01() {
+        let filter = NoFilter;
+
+        let task = task::Task { url: Url::parse("http://tv2.dk").unwrap() };
+        let tasks: Vec<Task> = vec![task];
+
+        let expected = task::Task { url: Url::parse("http://tv2.dk").unwrap() };
+        assert!(filter.filter(tasks).contains(&expected))
+    }
+
+    /// Test that nofilter will allow all Urls to pass through filter
+    #[test]
+    fn nofilter_test_02() {
+        let filter = NoFilter;
+
+        let task1 = task::Task { url: Url::parse("http://bbc.co.uk").unwrap() };
+        let task3 = task::Task { url: Url::parse("http://dr.dk").unwrap() };
+        let task2 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
+        let task4 = task::Task { url: Url::parse("http://facebook.com").unwrap() };
+        let tasks: Vec<Task> = vec![task1, task2, task3, task4];
+
+        let mut tasks_clone: Vec<Task> = Vec::new();
+        for i in &tasks {
+            tasks_clone.push(Task { url: Url::parse(i.url.as_str()).unwrap() })
+        }
+
+        assert_eq!(filter.filter(tasks), tasks_clone)
     }
 }
