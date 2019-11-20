@@ -249,7 +249,7 @@ impl Manager for RMQRedisManager {
 
     /// Checks if a task has already been submitted
     fn contains(&self, task: &Task) -> ManagerResult<bool> {
-        let mut con = self.redis_connection.lock().expect("Redis connection mutex was corruption");
+        let mut con = self.redis_connection.lock().expect("Redis connection mutex was corrupted");
 
         // Check if the task is a member of the collection
         con.sismember(self.redis_set.as_str(), task)
@@ -257,7 +257,7 @@ impl Manager for RMQRedisManager {
     }
 }
 
-/// Establishes a redis connection. It if is sentinel it connects to the master group named 'master'
+/// Establishes a redis connection. If it is a sentinel it connects to the master group named 'master'
 fn create_redis_connection(connection_info: ConnectionInfo, sentinel: bool) -> Result<Connection, RedisError> {
     let mut client = redis::Client::open(connection_info.clone())?;
 
