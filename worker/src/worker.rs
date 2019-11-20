@@ -1,9 +1,10 @@
 use std::collections::HashSet;
 use std::marker::PhantomData;
+
 use url::Url;
 
-use crate::traits::{Archive, Downloader, Extractor, Manager, TaskProcessResult, Normaliser, Filter};
 use crate::task::Task;
+use crate::traits::{Archive, Downloader, Extractor, Filter, Manager, Normaliser, TaskProcessResult};
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
@@ -34,7 +35,6 @@ impl<S, D> Worker<S, D> {
         archive: Box<dyn Archive<D>>,
         filter: Box<dyn Filter>,
     ) -> Self {
-
         Worker {
             name: String::from(name),
             manager,
@@ -58,20 +58,20 @@ impl<S, D> Worker<S, D> {
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     error!("{} failed to download a page. {}", self.name, e);
-                    return TaskProcessResult::from(e)
+                    return TaskProcessResult::from(e);
                 }
                 Ok(page) => {
                     match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
                             error!("{} failed to extract data from page. {}", self.name, e);
-                            return TaskProcessResult::from(e)
+                            return TaskProcessResult::from(e);
                         }
                         Ok((mut urls, data)) => {
                             // Archiving
                             for datum in data {
                                 if let Err(e) = self.archive.archive_content(datum) {
                                     error!("{} failed archiving some data. {}", self.name, e);
-                                    return TaskProcessResult::from(e)
+                                    return TaskProcessResult::from(e);
                                 }
                             }
 
@@ -95,8 +95,8 @@ impl<S, D> Worker<S, D> {
                                 .collect();
 
                             // Check if extracted tasks are new, if they are, submit them
-                            for task in &tasks {
-                                if self.filter.filter(&task) {
+                            let filtered_tasks = self.filter.filter(tasks);
+                            for task in &filtered_tasks {
                                     match self.manager.contains(task) {
                                         Ok(exists) => {
                                             if !exists {
@@ -111,10 +111,9 @@ impl<S, D> Worker<S, D> {
                                             return TaskProcessResult::from(e);
                                         }
                                     }
-                                }
                             }
 
-                            return TaskProcessResult::Ok
+                            return TaskProcessResult::Ok;
                         }
                     }
                 }

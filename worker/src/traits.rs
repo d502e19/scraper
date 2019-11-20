@@ -53,7 +53,7 @@ pub trait Extractor<S, D> {
 /// The Filter selects which tasks to visit. When the `filter` method returns true, the task should
 /// be resolved.
 pub trait Filter {
-    fn filter(&self, task: &Task) -> bool;
+    fn filter(&self, tasks: Vec<Task>) -> Vec<Task>;
 }
 
 /// The Archive stores the target data D
