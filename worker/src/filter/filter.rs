@@ -144,7 +144,8 @@ mod tests {
         vec!["reddit.com", "bbc.co.uk", "dr.dk"].iter().map(|f| f.to_string()).collect()
     }
 
-    /// Test that looking up a Url that is contained in whitelist returns true
+    /// Test that task with Url in whitelist is passes through filter
+    /// "http://reddit.com" is in whitelist
     #[test]
     fn whitelist_test_01() {
         let whitelist = Whitelist::new_from_vec(get_predefined_list());
@@ -155,7 +156,8 @@ mod tests {
         assert!(whitelist.filter(tasks).contains(&expected))
     }
 
-    /// Test that looking up a Url that is NOT contained in whitelist returns false
+    /// Test that task with Url not in whitelist is filtered out
+    /// "http://tv2.dk" is not in whitelist
     #[test]
     fn whitelist_test_02() {
         let whitelist = Whitelist::new_from_vec(get_predefined_list());
@@ -166,19 +168,25 @@ mod tests {
         assert!(!whitelist.filter(tasks).contains(&expected))
     }
 
-    /// Test that looking up a Url that is NOT contained in blacklist returns true
+    /// Test that tasks with Urls in whitelist passes through filter, other tasks don't
+    /// "http://bbc.co.uk" is in whitelist, ""http://okboomer.dk" is not
     #[test]
     fn whitelist_test_03() {
         let whitelist = Whitelist::new_from_vec(get_predefined_list());
         let task = task::Task { url: Url::parse("http://bbc.co.uk").unwrap() };
         let task1 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
         let tasks: Vec<Task> = vec![task, task1];
+        let filtered_tasks = whitelist.filter(tasks);
 
-        let expected = task::Task { url: Url::parse("http://bbc.co.uk").unwrap() };
-        assert!(whitelist.filter(tasks).contains(&expected))
+        let task = task::Task { url: Url::parse("http://bbc.co.uk").unwrap() };
+        let task1 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
+
+        assert!(filtered_tasks.contains(&task));
+        assert!(!filtered_tasks.contains(&task1));
     }
 
-    /// Test that looking up a Url that is contained in blacklist returns false
+    /// Test that task with Url in blacklist is filtered out
+    /// "reddit.com" is in blacklist, should not pass through
     #[test]
     fn blacklist_test_01() {
         let blacklist = Blacklist::new_from_vec(get_predefined_list());
@@ -186,10 +194,11 @@ mod tests {
         let tasks: Vec<Task> = vec![task];
 
         let expected = task::Task { url: Url::parse("http://reddit.com").unwrap() };
-        assert!(blacklist.filter(tasks).contains(&expected))
+        assert!(!blacklist.filter(tasks).contains(&expected))
     }
 
-    /// Test that looking up a Url that is NOT contained in blacklist returns true
+    /// Test that task with Url not in blacklist passes through filter
+    /// "http://tv2.dk" is not in blacklist, should pass through
     #[test]
     fn blacklist_test_02() {
         let blacklist = Blacklist::new_from_vec(get_predefined_list());
@@ -200,7 +209,8 @@ mod tests {
         assert!(blacklist.filter(tasks).contains(&expected))
     }
 
-    /// Test that looking up a Url that is NOT contained in blacklist returns true
+    /// Test that tasks with Urls in blacklist passes through filter, other tasks don't
+    /// "http://reddit.com" is in blacklist, ""http://okboomer.dk" is not
     #[test]
     fn blacklist_test_03() {
         let blacklist = Blacklist::new_from_vec(get_predefined_list());
@@ -208,11 +218,16 @@ mod tests {
         let task1 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
         let tasks: Vec<Task> = vec![task, task1];
 
-        let expected = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
-        assert!(blacklist.filter(tasks).contains(&expected))
+        let task = task::Task { url: Url::parse("http://reddit.com").unwrap() };
+        let task1 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
+
+        let filtered_tasks = blacklist.filter(tasks);
+
+        assert!(!filtered_tasks.contains(&task));
+        assert!(filtered_tasks.contains(&task1));
     }
 
-    /// Test that looking up a Url that is NOT contained in blacklist returns true
+    /// Test that nofilter will allow all Urls to pass through filter
     #[test]
     fn nofilter_test_01() {
         let filter = NoFilter;
@@ -224,15 +239,16 @@ mod tests {
         assert!(filter.filter(tasks).contains(&expected))
     }
 
-    /// Test that looking up a Url that is NOT contained in blacklist returns true
+    /// Test that nofilter will allow all Urls to pass through filter
     #[test]
     fn nofilter_test_02() {
         let filter = NoFilter;
 
-        let task1 = task::Task { url: Url::parse("http://tv2.dk").unwrap() };
+        let task1 = task::Task { url: Url::parse("http://bbc.co.uk").unwrap() };
+        let task3 = task::Task { url: Url::parse("http://dr.dk").unwrap() };
         let task2 = task::Task { url: Url::parse("http://okboomer.dk").unwrap() };
-        let task3 = task::Task { url: Url::parse("http://tv2.dk").unwrap() };
-        let tasks: Vec<Task> = vec![task1, task2, task3];
+        let task4 = task::Task { url: Url::parse("http://facebook.com").unwrap() };
+        let tasks: Vec<Task> = vec![task1, task2, task3, task4];
 
         let mut tasks_clone: Vec<Task> = Vec::new();
         for i in &tasks {
