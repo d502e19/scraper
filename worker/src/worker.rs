@@ -67,11 +67,9 @@ impl<S, D> Worker<S, D> {
                         }
                         Ok((mut urls, data)) => {
                             // Archiving
-                            for datum in data {
-                                if let Err(e) = self.archive.archive_content(datum) {
-                                    error!("{} failed archiving some data. {}", self.name, e);
-                                    return TaskProcessResult::from(e);
-                                }
+                            if let Err(e) = self.archive.archive_content(data) {
+                                error!("{} failed archiving some data. {}", self.name, e);
+                                return TaskProcessResult::from(e);
                             }
 
                             // Normalising urls
