@@ -35,17 +35,17 @@ impl Filter for Blacklist {
     /// Removes all tasks which url is blacklisted
     fn filter(&self, mut tasks: Vec<Task>) -> Vec<Task> {
         return tasks.drain(..).filter(|task| {
-            // If no host url in task, e.g if task is an email address, return false
+            // Return false if host_url is substring of any url in blacklist, else return true
             if let Some(host_url) = task.url.host_str() {
                 let host_url = host_url.to_string();
                 // Check if the host_url contains a blacklisted substring
                 for url in &self.urls {
-                    if !host_url.contains(url) {
-                        return true;
+                    if host_url.contains(url) {
+                        return false;
                     }
                 }
             }
-            return false;
+            return true;
         }).collect();
     }
 }
@@ -73,7 +73,7 @@ impl Filter for Whitelist {
     /// Removes all tasks which url is not whitelisted
     fn filter(&self, mut tasks: Vec<Task>) -> Vec<Task> {
         return tasks.drain(..).filter(|task| {
-            // If no host url in task, e.g if task is an email address, return false
+            // Return true if host_url is substring of any url in whitelist, else return false
             if let Some(host_url) = task.url.host_str() {
                 let host_url = host_url.to_string();
                 // Check if the host_url contains a whitelisted substring
