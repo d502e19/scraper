@@ -36,6 +36,8 @@ impl Normaliser for DefaultNormaliser {
 }
 
 impl DefaultNormaliser {
+
+    /// Perform all the implemented normalisation functions
     fn full_normalisation(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
 

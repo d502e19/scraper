@@ -74,9 +74,7 @@ impl<S, D> Worker<S, D> {
                                 }
                             }
 
-                            // Normalise extracted links
-                            // After normalisation, squash urls into a hash set to remove duplicates
-                            // Erroneous urls are discarded
+                            // Normalising urls
                             let tasks: Vec<Task> = self.normaliser.normalise(urls)
                                 .drain(..)
                                 .map(|url| Task { url })
