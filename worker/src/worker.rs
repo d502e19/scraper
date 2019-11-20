@@ -34,7 +34,6 @@ impl<S, D> Worker<S, D> {
         archive: Box<dyn Archive<D>>,
         filter: Box<dyn Filter>,
     ) -> Self {
-
         Worker {
             name: String::from(name),
             manager,
@@ -58,41 +57,31 @@ impl<S, D> Worker<S, D> {
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     error!("{} failed to download a page. {}", self.name, e);
-                    return TaskProcessResult::from(e)
+                    return TaskProcessResult::from(e);
                 }
                 Ok(page) => {
                     match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
                             error!("{} failed to extract data from page. {}", self.name, e);
-                            return TaskProcessResult::from(e)
+                            return TaskProcessResult::from(e);
                         }
                         Ok((mut urls, data)) => {
                             // Archiving
                             for datum in data {
                                 if let Err(e) = self.archive.archive_content(datum) {
                                     error!("{} failed archiving some data. {}", self.name, e);
-                                    return TaskProcessResult::from(e)
+                                    return TaskProcessResult::from(e);
                                 }
                             }
 
                             // Normalise extracted links
                             // After normalisation, squash urls into a hash set to remove duplicates
                             // Erroneous urls are discarded
-                            let tasks: Vec<Task> = urls.drain(..)
-                                .filter_map(|url| {
-                                    let url_as_str = String::from(url.as_str());
-                                    match self.normaliser.normalise(url) {
-                                        Ok(normalised_url) => Some(normalised_url),
-                                        Err(e) => {
-                                            error!("{} failed to normalise {}. {}", self.name, url_as_str, e);
-                                            None
-                                        }
-                                    }
-                                })
-                                .collect::<HashSet<Url>>()
-                                .drain()
+                            let tasks: Vec<Task> = self.normaliser.normalise(urls)
+                                .drain(..)
                                 .map(|url| Task { url })
                                 .collect();
+
 
                             // Check if extracted tasks are new, if they are, submit them
                             for task in &tasks {
@@ -114,7 +103,7 @@ impl<S, D> Worker<S, D> {
                                 }
                             }
 
-                            return TaskProcessResult::Ok
+                            return TaskProcessResult::Ok;
                         }
                     }
                 }

@@ -63,5 +63,5 @@ pub trait Archive<D> {
 
 /// The Normaliser normalises URLs to avoid different Urls to the same page
 pub trait Normaliser {
-    fn normalise(&self, url: Url) -> NormaliseResult<Url>;
+    fn normalise(&self, url: Vec<Url>) -> Vec<Url>;
 }

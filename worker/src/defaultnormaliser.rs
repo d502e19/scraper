@@ -4,6 +4,7 @@ use url::Url;
 use url_normalizer;
 use crate::errors::{NormaliseResult, NormaliseError};
 use crate::errors::NormaliseErrorKind::ParsingError;
+use std::collections::HashSet;
 
 
 /// The DefaultNormaliser is a Normaliser that normalises URI's as described by
@@ -13,7 +14,29 @@ pub struct DefaultNormaliser;
 impl Normaliser for DefaultNormaliser {
     /// Normalising the tasks Url by setting scheme and path to lowercase,
     /// removing the dot in path, removes hash from url and ordering the query.
-    fn normalise(&self, url: Url) -> NormaliseResult<Url> {
+    fn normalise(&self, urls: Vec<Url>) -> Vec<Url> {
+        let mut new_urls = urls;
+        // Normalise extracted links
+        // After normalisation, squash urls into a hash set to remove duplicates
+        // Erroneous urls are discarded
+        let mut set: HashSet<Url> = new_urls.drain(..)
+            .filter_map(|url| {
+                let url_as_str = String::from(url.as_str());
+                match DefaultNormaliser::full_normalisation(url) {
+                    Ok(normalised_url) => Some(normalised_url),
+                    Err(e) => {
+                        error!("Failed to normalise {}. {}", url_as_str, e);
+                        None
+                    }
+                }
+            }).collect();
+
+        set.drain().collect()
+    }
+}
+
+impl DefaultNormaliser {
+    fn full_normalisation(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
 
         // Normalising by ordering the query in alphabetic order,
@@ -30,9 +53,7 @@ impl Normaliser for DefaultNormaliser {
 
         Ok(new_url)
     }
-}
 
-impl DefaultNormaliser {
     //The parser operation given by the Url-crate features an automatically normalisation of the given string,
     //because that is the case, there are no need for the below functions.
     /// Sets the scheme and host to lowercase
@@ -65,7 +86,7 @@ impl DefaultNormaliser {
 
         if new_url.query().is_some() {
             let mut query = DefaultNormaliser::converting_encoded_triplet_to_upper_for_str(new_url.query().unwrap());
-             new_url.set_query(Option::Some(query.as_str()));
+            new_url.set_query(Option::Some(query.as_str()));
         }
 
         if new_url.fragment().is_some() {
@@ -77,7 +98,7 @@ impl DefaultNormaliser {
 
     /// This function look for "%" and then convert the
     /// following two letters to uppercase for a given string.
-    fn converting_encoded_triplet_to_upper_for_str(some_str : &str) -> String{
+    fn converting_encoded_triplet_to_upper_for_str(some_str: &str) -> String {
         let mut str_build = "".to_string();
         let some_chars = some_str.chars();
         let mut counter = 0;
@@ -117,9 +138,11 @@ mod tests {
             url: Url::parse("http://example.com").unwrap()
         };
 
-        let test_url = DefaultNormaliser.normalise(test_task.url).unwrap();
+        let test_vec = vec![test_task.url];
 
-        assert_eq!(test_url.to_string(), expected_url);
+        let test_url = DefaultNormaliser.normalise(test_vec);
+
+        assert_eq!(test_url[0].to_string(), expected_url);
     }
 
     #[test]
