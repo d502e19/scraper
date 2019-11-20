@@ -68,12 +68,11 @@ impl<S, D> Worker<S, D> {
                         }
                         Ok((mut urls, data)) => {
                             // Archiving
-                            for datum in data {
-                                if let Err(e) = self.archive.archive_content(datum) {
-                                    error!("{} failed archiving some data. {}", self.name, e);
-                                    return TaskProcessResult::from(e);
-                                }
+                            if let Err(e) = self.archive.archive_content(data) {
+                                error!("{} failed archiving some data. {}", self.name, e);
+                                return TaskProcessResult::from(e);
                             }
+
 
                             // Normalise extracted links
                             // After normalisation, squash urls into a hash set to remove duplicates
@@ -97,20 +96,20 @@ impl<S, D> Worker<S, D> {
                             // Check if extracted tasks are new, if they are, submit them
                             let filtered_tasks = self.filter.filter(tasks);
                             for task in &filtered_tasks {
-                                    match self.manager.contains(task) {
-                                        Ok(exists) => {
-                                            if !exists {
-                                                if let Err(e) = self.manager.submit_task(task) {
-                                                    error!("{} failed submitting a new task to the manager. {}", self.name, e);
-                                                    return TaskProcessResult::from(e);
-                                                }
+                                match self.manager.contains(task) {
+                                    Ok(exists) => {
+                                        if !exists {
+                                            if let Err(e) = self.manager.submit_task(task) {
+                                                error!("{} failed submitting a new task to the manager. {}", self.name, e);
+                                                return TaskProcessResult::from(e);
                                             }
                                         }
-                                        Err(e) => {
-                                            error!("{} failed to check if a new task is present in the collection. {}", self.name, e);
-                                            return TaskProcessResult::from(e);
-                                        }
                                     }
+                                    Err(e) => {
+                                        error!("{} failed to check if a new task is present in the collection. {}", self.name, e);
+                                        return TaskProcessResult::from(e);
+                                    }
+                                }
                             }
 
                             return TaskProcessResult::Ok;
