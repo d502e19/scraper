@@ -140,6 +140,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             .value_name("COLLECTION")
             .help("Specify the RabbitMQ collection queue to connect to")
     ).arg(
+        Arg::with_name("sentinel")
+            .long("sentinel")
+            .env("SCRAPER_SENTINEL")
+            .default_value("true")
+            .value_name("BOOLEAN")
+            .help("Specify whether to use a sentinel redis connection or not")
+    ).arg(
         Arg::with_name("redis-set")
             .short("s")
             .long("redis-set")
@@ -202,6 +209,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => LevelFilter::Off,
         },
     )) {
+        info!("Build commit: {}", env!("VERGEN_SHA"));
+
         info!(
             "Starting worker module using RabbitMQ({}:{}) and redis({}:{})",
             args.value_of("rmq-address").unwrap().to_string(),
@@ -221,6 +230,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),
+            args.value_of("sentinel").unwrap().parse().expect("The sentinel argument was not a boolean")
         )
         .expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();

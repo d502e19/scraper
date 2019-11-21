@@ -1,4 +1,4 @@
-use std::io::{Error, ErrorKind};
+use std::sync::{Mutex};
 
 use futures::future::Future;
 use futures::stream::Stream;
@@ -8,12 +8,14 @@ use lapin_futures::options::{
     QueueBindOptions, QueueDeclareOptions, BasicQosOptions,
 };
 use lapin_futures::types::FieldTable;
-use redis::{Commands, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value};
+use redis::{Commands, Connection, ConnectionAddr, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value, ConnectionInfo, IntoConnectionInfo, RedisResult};
 
 use crate::errors::{ManagerError, ManagerResult};
 use crate::errors::ManagerErrorKind::UnreachableError;
 use crate::task::Task;
 use crate::traits::{Manager, TaskProcessResult};
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
@@ -31,13 +33,48 @@ impl FromRedisValue for Task {
         match *v {
             Value::Data(ref bytes) => {
                 Task::deserialise(bytes.to_owned())
-                    .map_err(|_| RedisError::from(Error::new(ErrorKind::Other, "Failed to deserialise task")))
+                    .map_err(|_| RedisError::from(std::io::Error::new(std::io::ErrorKind::Other, "Failed to deserialise task")))
             }
-            _ => Err(RedisError::from(Error::new(
-                ErrorKind::Other,
+            _ => Err(RedisError::from(std::io::Error::new(
+                std::io::ErrorKind::Other,
                 "Response could not be translated to a task",
             )))
         }
+    }
+}
+
+/// Error that encapsulates potential errors during construction of a RMQRedisManager.
+/// It enables us to return detailed error messages.
+#[derive(Debug)]
+pub enum RMQRedisManagerError {
+    RedisError(RedisError),
+    RabbitMQError(lapin_futures::Error),
+}
+
+impl Error for RMQRedisManagerError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            RMQRedisManagerError::RedisError(e) => Some(e),
+            RMQRedisManagerError::RabbitMQError(e) => Some(e),
+        }
+    }
+}
+
+impl Display for RMQRedisManagerError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl From<RedisError> for RMQRedisManagerError {
+    fn from(e: RedisError) -> Self {
+        RMQRedisManagerError::RedisError(e)
+    }
+}
+
+impl From<lapin_futures::Error> for RMQRedisManagerError {
+    fn from(e: lapin_futures::Error) -> Self {
+        RMQRedisManagerError::RabbitMQError(e)
     }
 }
 
@@ -54,6 +91,7 @@ pub struct RMQRedisManager {
     frontier_queue: Queue,
     exchange: String,
     prefetch_count: u16,
+    redis_connection: Mutex<Connection>,
     redis_set: String,
 }
 
@@ -69,37 +107,38 @@ impl RMQRedisManager {
         frontier_queue_name: String,
         collection_queue_name: String,
         redis_set: String,
-    ) -> Result<RMQRedisManager, ()> {
+        sentinel: bool,
+    ) -> Result<RMQRedisManager, RMQRedisManagerError> {
         debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
             \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\
-            \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}"
-               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, frontier_queue_name, collection_queue_name, redis_set);
+            \n\trmq_queue_name: {:?}\n\tcollection_queue_name: {:?}\n\tredis_set: {:?}\n\tsentinel: {:?}"
+               , rmq_addr, rmq_port, redis_addr, redis_port, exchange, prefetch_count, frontier_queue_name, collection_queue_name, redis_set, sentinel);
 
-       let client = Client::connect(
+        let client = Client::connect(
             format!("amqp://{}:{}/%2f", rmq_addr, rmq_port).as_str(),
             ConnectionProperties::default(),
-        ).wait().map_err(|_| ())?;
+        ).wait()?;
 
-        let channel = client.create_channel().wait().map_err(|_| ())?;
+        let channel = client.create_channel().wait()?;
 
         let frontier_queue = channel.queue_declare(
             frontier_queue_name.as_str(),
             QueueDeclareOptions::default(),
             FieldTable::default(),
-        ).wait().map_err(|_| ())?;
+        ).wait()?;
 
         channel.queue_declare(
             collection_queue_name.as_str(),
             QueueDeclareOptions::default(),
             FieldTable::default(),
-        ).wait().map_err(|_|())?;
+        ).wait()?;
 
         channel.exchange_declare(
             exchange.as_str(),
             ExchangeKind::Fanout,
             ExchangeDeclareOptions::default(),
             FieldTable::default(),
-        ).wait().map_err(|_| ())?;
+        ).wait()?;
 
         channel.queue_bind(
             frontier_queue_name.as_str(),
@@ -107,7 +146,7 @@ impl RMQRedisManager {
             "",
             QueueBindOptions::default(),
             FieldTable::default(),
-        ).wait().map_err(|_| ())?;
+        ).wait()?;
 
         channel.queue_bind(
             collection_queue_name.as_str(),
@@ -115,13 +154,20 @@ impl RMQRedisManager {
             "",
             QueueBindOptions::default(),
             FieldTable::default(),
-        ).wait().map_err(|_|())?;
+        ).wait()?;
 
         // Limit the amount of tasks stored in the local queue
         channel.basic_qos(
             prefetch_count,
             BasicQosOptions::default(),
-        ).wait().map_err(|_| ())?;
+        ).wait()?;
+
+        // Establish Redis connection
+        let connection_info = format!("redis://{}:{}/", redis_addr, redis_port).as_str()
+            .into_connection_info()?;
+        let redis_connection = Mutex::new(
+            create_redis_connection(connection_info, sentinel)?
+        );
 
         Ok(RMQRedisManager {
             rmq_addr,
@@ -132,6 +178,7 @@ impl RMQRedisManager {
             frontier_queue,
             exchange,
             prefetch_count,
+            redis_connection,
             redis_set,
         })
     }
@@ -202,17 +249,48 @@ impl Manager for RMQRedisManager {
 
     /// Checks if a task has already been submitted
     fn contains(&self, task: &Task) -> ManagerResult<bool> {
-        let client_result =
-            redis::Client::open(format!("redis://{}:{}/", self.redis_addr, self.redis_port).as_str());
-        if let Ok(client) = client_result {
-            if let Ok(mut con) = client.get_connection() {
-                // Check if the task is a member of the collection
-                let found_result = con.sismember(self.redis_set.as_str(), task);
-                if let Ok(found) = found_result {
-                    return Ok(found);
-                }
+        let mut con = self.redis_connection.lock().expect("Redis connection mutex was corrupted");
+
+        // Check if the task is a member of the collection
+        con.sismember(self.redis_set.as_str(), task)
+            .map_err(|e| ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))
+    }
+}
+
+/// Establishes a redis connection. If it is a sentinel it connects to the master group named 'master'
+fn create_redis_connection(connection_info: ConnectionInfo, sentinel: bool) -> Result<Connection, RedisError> {
+    let mut client = redis::Client::open(connection_info.clone())?;
+
+    if sentinel {
+        // Get details about the Redis master
+        let query_result: RedisResult<(String, u16)> = redis::cmd("SENTINEL")
+            .arg("get-master-addr-by-name")
+            .arg("master")
+            .query(&mut client);
+        match query_result {
+            Ok((master_addr, master_port)) => {
+                // New sentinel client using master address and master port
+                let sentinel_client = redis::Client::open(
+                    ConnectionInfo {
+                        addr: Box::new(ConnectionAddr::Tcp(master_addr, master_port)),
+                        ..connection_info
+                    },
+                )?;
+
+                return sentinel_client.get_connection()
+            }
+            Err(e) => {
+                // This will happen when we try to run it locally, so here is a reminder
+                // to set `sentinel=false`
+                error!("Failed to establish a sentinel connection with Redis. You are probably \
+                running Redis locally. In that case try using the argument `sentinel=false` \
+                or set the environment variable SCRAPER_SENTINEL=false.");
+                return Err(e)
             }
         }
-        Err(ManagerError::new(UnreachableError, "Could not reach manager.", None))
+
+    } else {
+        // Non-sentinel connection
+        return client.get_connection()
     }
 }
