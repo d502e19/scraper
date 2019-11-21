@@ -209,6 +209,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => LevelFilter::Off,
         },
     )) {
+        info!("Build commit: {}", env!("VERGEN_SHA"));
+
         info!(
             "Starting worker module using RabbitMQ({}:{}) and redis({}:{})",
             args.value_of("rmq-address").unwrap().to_string(),

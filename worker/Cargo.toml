@@ -10,6 +10,7 @@ authors = ["d502e19 <d502e19@cs.aau.dk>",
     "Nicolaj Østerby Jensen <naje17@student.aau.dk>",
     ]
 edition = "2018"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,3 +28,6 @@ scraper = "^0.11.0"
 mockito = "^0.21.0"
 log = "^0.4.8"
 log4rs = "^0.8.3"
+
+[build-dependencies]
+vergen = "3.0.4"
