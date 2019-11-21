@@ -167,6 +167,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 _ => LevelFilter::Off,
             })
     ) {
+        info!("Build commit: {}", env!("VERGEN_SHA"));
 
         // Tries to get a connection to redis
         // If a connection is established continue handling messages, otherwise put error
