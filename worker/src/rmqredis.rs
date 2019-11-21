@@ -258,7 +258,7 @@ impl Manager for RMQRedisManager {
 
     /// Cull tasks that have already been submitted once
     fn cull_known(&self, mut tasks: Vec<Task>) -> ManagerResult<Vec<Task>> {
-        let mut con = self.redis_connection.lock().expect("Redis connection mutex was corruption");
+        let mut con = self.redis_connection.lock().expect("Redis connection mutex was corrupted");
 
         // Query Redis about membership
         let reset_set = self.redis_set.as_str();
@@ -283,7 +283,7 @@ impl Manager for RMQRedisManager {
     }
 }
 
-/// Establishes a redis connection. It if is sentinel it connects to the master group named 'master'
+/// Establishes a redis connection. If it is a sentinel it connects to the master group named 'master'
 fn create_redis_connection(connection_info: ConnectionInfo, sentinel: bool) -> Result<Connection, RedisError> {
     let mut client = redis::Client::open(connection_info.clone())?;
 
