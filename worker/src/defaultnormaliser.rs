@@ -4,6 +4,8 @@ use url::Url;
 use url_normalizer;
 use crate::errors::{NormaliseResult, NormaliseError};
 use crate::errors::NormaliseErrorKind::ParsingError;
+use std::collections::HashSet;
+
 
 /// The DefaultNormaliser is a Normaliser that normalises URI's as described by
 /// RFC 3986 (https://tools.ietf.org/html/rfc3986) without changing the semantics.
@@ -12,13 +14,30 @@ pub struct DefaultNormaliser;
 impl Normaliser for DefaultNormaliser {
     /// Normalising the tasks Url by setting scheme and path to lowercase,
     /// removing the dot in path, removes hash from url and ordering the query.
-    fn normalise(&self, url: Url) -> NormaliseResult<Url> {
-        DefaultNormaliser::full_normalisation(url)
+    fn normalise(&self, urls: Vec<Url>) -> Vec<Url> {
+        let mut new_urls = urls;
+        // Normalise extracted links
+        // After normalisation, squash urls into a hash set to remove duplicates
+        // Erroneous urls are discarded
+        let mut set: HashSet<Url> = new_urls.drain(..)
+            .filter_map(|url| {
+                let url_as_str = String::from(url.as_str());
+                match DefaultNormaliser::full_normalisation(url) {
+                    Ok(normalised_url) => Some(normalised_url),
+                    Err(e) => {
+                        error!("Failed to normalise {}. {}", url_as_str, e);
+                        None
+                    }
+                }
+            }).collect();
+
+        set.drain().collect()
     }
 }
 
 impl DefaultNormaliser {
-    /// Run through all implemented normalisation functions and applying those on the given url.
+
+    /// Perform all the implemented normalisation functions
     fn full_normalisation(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
 
@@ -28,13 +47,17 @@ impl DefaultNormaliser {
             NormaliseError::new(ParsingError, "Failed to normalise using url library", None)
         })?;
 
+        // Converting encoded triplets to uppercase
+        new_url = DefaultNormaliser::converting_encoded_triplets_to_upper_for_url(new_url)?;
+
+        // Sets the scheme and host to lowercase
         new_url = DefaultNormaliser::scheme_and_host_to_lowercase(new_url)?;
-        new_url = DefaultNormaliser::converting_encoded_triplets_to_upper(new_url)?;
-        new_url = DefaultNormaliser::empty_path_to_slash(new_url)?;
 
         Ok(new_url)
     }
 
+    //The parser operation given by the Url-crate features an automatically normalisation of the given string,
+    //because that is the case, there are no need for the below functions.
     /// Sets the scheme and host to lowercase
     fn scheme_and_host_to_lowercase(url: Url) -> NormaliseResult<Url> {
         let mut new_url = url;
@@ -57,10 +80,29 @@ impl DefaultNormaliser {
     /// Converting encoded triplets to uppercase, example:
     /// From: "http://example.com/foo%2a"
     /// To: "http://example.com/foo%2A"
-    fn converting_encoded_triplets_to_upper(url: Url) -> NormaliseResult<Url> {
-        let new_url = url;
+    fn converting_encoded_triplets_to_upper_for_url(url: Url) -> NormaliseResult<Url> {
+        let mut new_url = url;
+
+        let mut path = DefaultNormaliser::converting_encoded_triplet_to_upper_for_str(new_url.path());
+        new_url.set_path(path.as_str());
+
+        if new_url.query().is_some() {
+            let mut query = DefaultNormaliser::converting_encoded_triplet_to_upper_for_str(new_url.query().unwrap());
+            new_url.set_query(Option::Some(query.as_str()));
+        }
+
+        if new_url.fragment().is_some() {
+            let mut fragment = DefaultNormaliser::converting_encoded_triplet_to_upper_for_str(new_url.fragment().unwrap());
+            new_url.set_fragment(Option::Some(fragment.as_str()));
+        }
+        Ok(new_url)
+    }
+
+    /// This function look for "%" and then convert the
+    /// following two letters to uppercase for a given string.
+    fn converting_encoded_triplet_to_upper_for_str(some_str: &str) -> String {
         let mut str_build = "".to_string();
-        let some_chars = new_url.as_str().chars();
+        let some_chars = some_str.chars();
         let mut counter = 0;
 
         // Iterating through all characters in the url
@@ -81,27 +123,7 @@ impl DefaultNormaliser {
             }
         }
 
-        // Parse the built string as an url for return
-        Url::parse(str_build.as_str()).map_err(|e| {
-            NormaliseError::new(ParsingError, "Failed converting triplets to uppercase", Some(Box::new(e)))
-        })
-    }
-
-    /// Converting an empty path to a slash. Example:
-    /// From: "http://example.com"
-    /// To: "http://example.com/"
-    fn empty_path_to_slash(url: Url) -> NormaliseResult<Url> {
-        let new_url = url;
-        let url_as_str = new_url.as_str();
-
-        if url_as_str.ends_with("/") || !new_url.path().is_empty() {
-            Ok(new_url)
-        } else {
-            url_as_str.to_string().push_str("/");
-            Url::parse(url_as_str).map_err(|e| {
-                NormaliseError::new(ParsingError, "Failed adding '/' for empty path", Some(Box::new(e)))
-            })
-        }
+        str_build
     }
 }
 
@@ -118,9 +140,11 @@ mod tests {
             url: Url::parse("http://example.com").unwrap()
         };
 
-        let test_url = DefaultNormaliser::empty_path_to_slash(test_task.url).unwrap();
+        let test_vec = vec![test_task.url];
 
-        assert_eq!(test_url.to_string(), expected_url);
+        let test_url = DefaultNormaliser.normalise(test_vec);
+
+        assert_eq!(test_url[0].to_string(), expected_url);
     }
 
     #[test]
@@ -130,7 +154,7 @@ mod tests {
             url: Url::parse("http://example.com/foo%2a").unwrap()
         };
 
-        let test_url = DefaultNormaliser::converting_encoded_triplets_to_upper(test_task.url).unwrap();
+        let test_url = DefaultNormaliser::converting_encoded_triplets_to_upper_for_url(test_task.url).unwrap();
 
         assert_eq!(test_url.to_string(), expected_url);
     }
