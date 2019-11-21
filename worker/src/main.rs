@@ -143,9 +143,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         Arg::with_name("sentinel")
             .long("sentinel")
             .env("SCRAPER_SENTINEL")
-            .default_value("true")
-            .value_name("BOOLEAN")
-            .help("Specify whether to use a sentinel redis connection or not")
+            .default_value("none")
+            .value_name("NAME")
+            .help("An optional name of a master group for a sentinel Redis connection.")
     ).arg(
         Arg::with_name("redis-set")
             .short("s")
@@ -219,6 +219,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("redis-port").unwrap().to_string(),
         );
 
+        let sentinel_arg: &str = args.value_of("sentinel").unwrap();
+        let sentinel = if sentinel_arg != "none" {
+            Some(sentinel_arg)
+        } else {
+            None
+        };
+
         // Construct a worker and its components
         let manager = RMQRedisManager::new(
             args.value_of("rmq-address").unwrap().to_string(),
@@ -230,7 +237,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),
-            args.value_of("sentinel").unwrap().parse().expect("The sentinel argument was not a boolean")
+            sentinel
         )
         .expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
