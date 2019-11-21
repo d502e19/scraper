@@ -67,6 +67,7 @@ impl HTMLExtractor<()> for HTMLLinkExtractor {
     ) -> ExtractResult<(Vec<Url>, Vec<()>)> {
         // Extract no data
         // Urls are found in the href attributes of anchor tags
+        // and check if they are either https or http
         let tasks: Vec<Url> = content
             .select(&self.link_selector)
             .filter_map(|element| element.value().attr("href"))
@@ -75,6 +76,13 @@ impl HTMLExtractor<()> for HTMLLinkExtractor {
                     .base_url(Some(&reference_url))
                     .parse(url)
                     .ok()
+            })
+            .filter_map(|url| {
+                if "https" == url.scheme() || url.scheme() == "http" {
+                    Some(url)
+                } else {
+                    None
+                }
             })
             .collect();
 
@@ -130,6 +138,33 @@ mod tests {
             Ok((url, _)) => {
                 assert_eq!(url.len(), 1);
                 assert_eq!(url[0].as_str(), "http://ref.ref/test");
+            }
+            Err(_) => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_link_extractor_http_only() {
+        let html_extractor = HTMLLinkExtractor::new();
+        let extractor = HTMLExtractorBase::new(html_extractor);
+
+        let test_string = "<!DOCTYPE html>
+            <html>
+            <body>
+            <a>one</a>
+            <a href=\"http://example.com/\">two</a>
+            <a href=\"mailto:example.com/\">two</a>
+            <a href=\"urn:example.com/\">two</a>
+            </body>
+            </html>";
+        let url = Url::parse("http://ref.ref").unwrap();
+
+        let result = extractor.extract_content(test_string.as_bytes().to_vec(), &url);
+
+        match result {
+            Ok((urls, _)) => {
+                assert_eq!(urls.len(), 1);
+                assert_eq!(urls[0].as_str(), "http://example.com/");
             }
             Err(_) => panic!(),
         }
