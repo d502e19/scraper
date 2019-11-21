@@ -8,7 +8,21 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-  redis:
+  redis-master:
     image: redis
     ports:
-      - '6379:6379'
+      - "6379:6379"
+  redis-slave:
+    image: redis
+    command: redis-server --slaveof redis-master 6379
+  redis-sentinel-1:
+    build:
+      context: docker/redis-sentinel
+    ports:
+      - '26379:26379'
+  redis-sentinel-2:
+    build:
+      context: docker/redis-sentinel
+  redis-sentinel-3:
+    build:
+      context: docker/redis-sentinel

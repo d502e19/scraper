@@ -1,0 +1,1 @@
+The files in this directory was sourced from [eiskalteschatten/Redis-Sentinel-Docker-Compose](https://github.com/eiskalteschatten/Redis-Sentinel-Docker-Compose/), and may be subject to another license
