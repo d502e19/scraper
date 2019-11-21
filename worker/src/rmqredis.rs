@@ -109,7 +109,7 @@ impl RMQRedisManager {
         frontier_queue_name: String,
         collection_queue_name: String,
         redis_set: String,
-        sentinel: bool,
+        sentinel: Option<String>,
     ) -> Result<RMQRedisManager, RMQRedisManagerError> {
         debug!("Creating RMQRedisManager with following values: \n\trmq_addr: {:?}\n\trmq_port: {:?}\
             \n\t redis_addr: {:?}\n\tredis_port: {:?}\n\trmq_exchange: {:?}\n\tprefetch_count: {:?}\
@@ -284,14 +284,14 @@ impl Manager for RMQRedisManager {
 }
 
 /// Establishes a redis connection. If it is a sentinel it connects to the master group named 'master'
-fn create_redis_connection(connection_info: ConnectionInfo, sentinel: bool) -> Result<Connection, RedisError> {
+fn create_redis_connection(connection_info: ConnectionInfo, sentinel: Option<String>) -> Result<Connection, RedisError> {
     let mut client = redis::Client::open(connection_info.clone())?;
 
-    if sentinel {
+    if let Some(set) = sentinel {
         // Get details about the Redis master
         let query_result: RedisResult<(String, u16)> = redis::cmd("SENTINEL")
             .arg("get-master-addr-by-name")
-            .arg("master")
+            .arg(set)
             .query(&mut client);
         match query_result {
             Ok((master_addr, master_port)) => {
