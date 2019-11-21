@@ -3,7 +3,7 @@ use crate::errors::{ManagerError, ManagerErrorKind, ManagerResult};
 
 /// Tasks are the workload instances assigned to Workers. It describes a single Url that needs
 /// to be resolved by the web scraper.
-#[derive(Hash, Eq, Debug)]
+#[derive(Hash, Eq, Debug, Clone)]
 pub struct Task {
     pub url: Url,
 }

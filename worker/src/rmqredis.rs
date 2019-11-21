@@ -8,7 +8,7 @@ use lapin_futures::options::{
     QueueBindOptions, QueueDeclareOptions, BasicQosOptions,
 };
 use lapin_futures::types::FieldTable;
-use redis::{Commands, Connection, ConnectionAddr, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value, ConnectionInfo, IntoConnectionInfo, RedisResult};
+use redis::{Connection, ConnectionAddr, FromRedisValue, RedisError, RedisWrite, ToRedisArgs, Value, ConnectionInfo, IntoConnectionInfo, RedisResult, PipelineCommands};
 
 use crate::errors::{ManagerError, ManagerResult};
 use crate::errors::ManagerErrorKind::UnreachableError;
@@ -16,6 +16,8 @@ use crate::task::Task;
 use crate::traits::{Manager, TaskProcessResult};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::ops::DerefMut;
+use std::borrow::BorrowMut;
 
 // Allows Redis to automatically serialise Task into raw bytes with type inference
 impl ToRedisArgs for &Task {
@@ -185,24 +187,30 @@ impl RMQRedisManager {
 }
 
 impl Manager for RMQRedisManager {
-    /// Submit a new task. The task must be checked if new before submission.
-    fn submit_task(&self, task: &Task) -> ManagerResult<()> {
-        let result = self
-            .channel
-            .basic_publish(
-                self.exchange.as_str(),
-                "",
-                task.serialise(),
-                BasicPublishOptions::default(),
-                BasicProperties::default(),
-            )
-            .wait();
+    /// Submit new tasks. The tasks must be checked if new before submission.
+    fn submit(&self, tasks: Vec<Task>) -> ManagerResult<()> {
+        // Publish each task. If one fails, abort
+        for task in tasks.iter() {
+            let result = self.channel
+                .basic_publish(
+                    self.exchange.as_str(),
+                    "",
+                    task.serialise(),
+                    BasicPublishOptions::default(),
+                    BasicProperties::default(),
+                )
+                .wait();
 
-        result.map_err(|e| ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))
+            if let Err(e) = result {
+                return Err(ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))
+            }
+        }
+
+        Ok(())
     }
 
     /// Start resolving tasks with the given resolve function
-    fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
+    fn subscribe(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult) {
         self.channel
             .basic_consume(
                 &self.frontier_queue,
@@ -244,16 +252,34 @@ impl Manager for RMQRedisManager {
     /// Closes the manager and its connections
     fn close(self) -> ManagerResult<()> {
         self.channel.close(0, "Manager was closed by calling close()");
+        // Redis connection does not have to be closed
         Ok(())
     }
 
-    /// Checks if a task has already been submitted
-    fn contains(&self, task: &Task) -> ManagerResult<bool> {
+    /// Cull tasks that have already been submitted once
+    fn cull_known(&self, mut tasks: Vec<Task>) -> ManagerResult<Vec<Task>> {
         let mut con = self.redis_connection.lock().expect("Redis connection mutex was corrupted");
 
-        // Check if the task is a member of the collection
-        con.sismember(self.redis_set.as_str(), task)
-            .map_err(|e| ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))
+        // Query Redis about membership
+        let reset_set = self.redis_set.as_str();
+        let mut pipeline = redis::pipe();
+        for task in tasks.iter() {
+            pipeline.sismember(reset_set, task);
+        }
+        let is_member_vec: Vec<bool> = pipeline.query(con.deref_mut())
+            .map_err(|e| ManagerError::new(UnreachableError, "Could not reach manager.", Some(Box::new(e))))?;
+
+        // Remove those that are already members of the collection
+        Ok(tasks.drain(..)
+            .zip(is_member_vec)
+            .filter_map(|(task, is_member)| {
+                if !is_member {
+                    Some(task)
+                } else {
+                    None
+                }
+            })
+            .collect())
     }
 }
 

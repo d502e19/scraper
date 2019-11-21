@@ -5,20 +5,20 @@ use crate::task::Task;
 
 /// A Manager serves as the interface to the frontier and the collection
 pub trait Manager {
-    fn submit_task(&self, task: &Task) -> ManagerResult<()>;
+    fn submit(&self, tasks: Vec<Task>) -> ManagerResult<()>;
 
-    fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult);
+    fn subscribe(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult);
 
     fn close(self) -> ManagerResult<()>;
 
-    fn contains(&self, task: &Task) -> ManagerResult<bool>;
+    fn cull_known(&self, tasks: Vec<Task>) -> ManagerResult<Vec<Task>>;
 }
 
 /// A Frontier contains upcoming tasks
 pub trait Frontier {
-    fn submit_task(&self, task: &Task) -> ManagerResult<()>;
+    fn submit(&self, task: Vec<Task>) -> ManagerResult<()>;
 
-    fn start_listening(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult);
+    fn subscribe(&self, resolve_func: &dyn Fn(Task) -> TaskProcessResult);
 
     fn close(self: Box<Self>) -> ManagerResult<()>;
 }
@@ -35,9 +35,11 @@ pub enum TaskProcessResult {
 
 /// A Collection contains every found task, which prevents work duplications
 pub trait Collection {
-    fn contains(&self, task: &Task) -> ManagerResult<bool>;
+    fn cull_known(&self, tasks: Vec<Task>) -> ManagerResult<Vec<Task>>;
 
-    fn submit_task(&self, task: &Task) -> ManagerResult<()>;
+    fn submit(&self, tasks: Vec<Task>) -> ManagerResult<()>;
+
+    fn close(self: Box<Self>) -> ManagerResult<()>;
 }
 
 /// The Downloader downloads the page S associated with the given task
