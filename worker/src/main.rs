@@ -27,6 +27,7 @@ use crate::task::Task;
 use crate::traits::Filter;
 use crate::void::Void;
 use crate::worker::Worker;
+use std::time::SystemTime;
 
 mod archive;
 mod defaultnormaliser;
@@ -141,7 +142,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .help("Specify the RabbitMQ collection queue to connect to")
         ).arg(
             Arg::with_name("sentinel")
-                .long("sentinel")
+                .short("m")
+            .long("sentinel")
                 .env("SCRAPER_SENTINEL")
                 .default_value("none")
                 .value_name("NAME")
@@ -194,6 +196,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .default_value("white")
                 .value_name("STRING")
                 .help("Specify whether the list in the given filter-path is a 'white' or 'black'-list")
+    ).arg(
+        Arg::with_name("processing-time")
+            .short("d")
+            .long("log-processing-time")
+            .env("SCRAPER_LOG_PROCESSING_TIME")
+            .default_value("false")
+            .value_name("BOOLEAN")
+            .help("Specify whether to enable logging and calculating of finishing times for a task")
         ).get_matches();
 
     // Load config for logging to stdout and logfile.
@@ -265,7 +275,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             Box::new(archive),
             filter,
         );
-        worker.start();
+        worker.start(args.value_of("processing-time").unwrap().parse()
+            .expect("The log processing time argument was not a boolean"));
 
         Ok(())
     } else {
