@@ -267,9 +267,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             Box::new(archive),
             filter,
         );
-        println!("{:?}", args.value_of("processing-time"));
-        let logging = args.value_of("processing-time").unwrap().parse().expect("The log processing time argument was not a boolean");
-        worker.start(logging);
+        worker.start(args.value_of("processing-time").unwrap().parse()
+            .expect("The log processing time argument was not a boolean"));
 
         Ok(())
     } else {
