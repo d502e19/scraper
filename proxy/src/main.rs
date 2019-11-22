@@ -77,6 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .help("Specify the redis-port to connect to"),
         ).arg(
             Arg::with_name("sentinel")
+                .short("m")
                 .long("sentinel")
                 .env("SCRAPER_SENTINEL")
                 .default_value("none")

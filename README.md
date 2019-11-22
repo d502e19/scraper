@@ -50,7 +50,7 @@ DatScraper Proxy 0.1.0
 d502e19@aau
 
 USAGE:
-    redis-proxy [OPTIONS]
+    redis-proxy.exe [OPTIONS]
 
 FLAGS:
     -h, --help       Prints help information
@@ -64,11 +64,15 @@ OPTIONS:
                                      [default: collection]
     -t, --rmq-consumer-tag <TAG>     Specify the RabbitMQ consumer tag to use [env: SCRAPER_RABBITMQ_CONSUMER_TAG=]
                                      [default: proxy]
-    -e, --addr <ADDR>                Specify the redis address [env: SCRAPER_REDIS_ADDRESS=]  [default: localhost]
+    -k, --rmq-routing-key <KEY>      Specify the RabbitMQ routing-key to connect to [env: SCRAPER_RABBITMQ_ROUTING_KEY=]
+                                     [default: ]
+    -e, --addr <ADDR>                Specify the redis address [env: SCRAPER_REDIS_ADDRESS=]  [default: 192.168.99.100]
     -r, --redis-port <PORT>          Specify the redis-port to connect to [env: SCRAPER_REDIS_PORT=]  [default: 6379]
     -s, --redis-set <SET>            Specify the redis set to connect to [env: SCRAPER_REDIS_SET=]  [default:
                                      collection]
-    -a, --rmq-addr <ADDR>            Specify the RabbitMQ address [env: SCRAPER_RMQ_ADDRESS=]  [default: localhost]
+    -a, --rmq-addr <ADDR>            Specify the RabbitMQ address [env: SCRAPER_RMQ_ADDRESS=]  [default: 192.168.99.100]
     -p, --rmq-port <PORT>            Specify the RabbitMQ port to connect to [env: SCRAPER_RABBITMQ_PORT=]  [default:
                                      5672]
+    -m, --sentinel <NAME>            An optional name of a master group for a sentinel Redis connection. [env:
+                                     SCRAPER_SENTINEL=]  [default: none]
 ```
