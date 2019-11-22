@@ -50,7 +50,7 @@ DatScraper Proxy 0.1.0
 d502e19@aau
 
 USAGE:
-    redis-proxy.exe [OPTIONS]
+    redis-proxy [OPTIONS]
 
 FLAGS:
     -h, --help       Prints help information
