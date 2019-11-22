@@ -5,6 +5,8 @@ use url::Url;
 
 use crate::task::Task;
 use crate::traits::{Archive, Downloader, Extractor, Filter, Manager, Normaliser, TaskProcessResult};
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::ops::Sub;
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
@@ -51,9 +53,26 @@ impl<S, D> Worker<S, D> {
     /// Starts the worker. It will now listen to the manager for new tasks are resolve those.
     /// Resolving includes downloading, extracting, archiving, and submitting new tasks.
     /// This is a blocking operation.
-    pub fn start(&self) {
+    pub fn start(&self, log_process: bool) {
         info!("Worker {} has started", self.name);
         self.manager.subscribe(&|task| {
+            // Only calculate start_time if log_process flag set high
+            let mut task_start_time;
+            if log_process {
+                task_start_time = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                    Ok(time) => { time.as_millis() }
+                    Err(e) => {
+                        error!("Could not get system time during receiving task on worker {} and task {}",
+                               self.name,
+                               task.url);
+                        // Return zero if no time could be found to avoid breaking entire worker
+                        0
+                    }
+                };
+            } else {
+                // Set start_time to zero if logging is unset. Probably carries a minuscule performance penalty.
+                task_start_time = 0;
+            }
             info!("Worker {} received task {}", self.name, task.url);
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
@@ -94,7 +113,23 @@ impl<S, D> Worker<S, D> {
                                     return TaskProcessResult::from(e);
                                 }
                             }
-
+                            // Only calculate finishing_time and log if log_process flag set high
+                            if log_process {
+                                let finishing_time = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                                    Ok(time) => {
+                                        // Subtract start_time from current time, rendering the finishing time
+                                        time.as_millis().sub(task_start_time)
+                                    }
+                                    Err(e) => {
+                                        error!("Could not get system time during receiving task on worker {} and task {}",
+                                               self.name,
+                                               task.url);
+                                        // Return zero if no time could be found to avoid breaking entire worker
+                                        0
+                                    }
+                                };
+                                info!("Worker {} finished task {} in {:?}ms", self.name, task.url, finishing_time);
+                            }
                             return TaskProcessResult::Ok;
                         }
                     }
