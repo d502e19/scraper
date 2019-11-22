@@ -91,110 +91,110 @@ fn main() -> Result<(), Box<dyn Error>> {
             .default_value(if cfg!(windows) { "192.168.99.100" } else { "localhost" })
             .value_name("ADDR")
             .help("Specify the Redis address")
-    ).arg(
-        Arg::with_name("rabbitmq-port")
-            .short("p")
-            .long("rmq-port")
-            .env("SCRAPER_RABBITMQ_PORT")
-            .default_value("5672")
-            .value_name("PORT")
-            .help("Specify the RabbitMQ port to connect to")
-    ).arg(
-        Arg::with_name("redis-port")
-            .short("r")
-            .long("redis-port")
-            .env("SCRAPER_REDIS_PORT")
-            .default_value("6379")
-            .value_name("PORT")
-            .help("Specify the redis-port to connect to")
-    ).arg(
-        Arg::with_name("rabbitmq-exchange")
-            .short("e")
-            .long("rmq-exchange")
-            .env("SCRAPER_RABBITMQ_EXCHANGE")
-            .default_value("work")
-            .value_name("EXCHANGE")
-            .help("Specify the RabbitMQ exchange to connect to")
-    ).arg(
-        Arg::with_name("rabbitmq-prefetch-count")
-            .short("n")
-            .long("rmq-prefetch-count")
-            .env("SCRAPER_RABBITMQ_PREFETCH_COUNT")
-            .default_value("5")
-            .value_name("COUNT")
-            .help("Specify the number of tasks to prefetch")
-    ).arg(
-        Arg::with_name("rabbitmq-queue")
-            .short("q")
-            .long("rmq-queue")
-            .env("SCRAPER_RABBITMQ_QUEUE")
-            .default_value("frontier")
-            .value_name("QUEUE")
-            .help("Specify the RabbitMQ queue to connect to")
-    ).arg(
-        Arg::with_name("rabbitmq-collection-queue")
-            .short("c")
-            .long("rmq-collection")
-            .env("SCRAPER_RABBITMQ_COLLECTION_QUEUE")
-            .default_value("collection")
-            .value_name("COLLECTION")
-            .help("Specify the RabbitMQ collection queue to connect to")
-    ).arg(
-        Arg::with_name("sentinel")
-            .long("sentinel")
-            .env("SCRAPER_SENTINEL")
-            .default_value("true")
-            .value_name("BOOLEAN")
-            .help("Specify whether to use a sentinel redis connection or not")
-    ).arg(
-        Arg::with_name("redis-set")
-            .short("s")
-            .long("redis-set")
-            .env("SCRAPER_REDIS_SET")
-            .default_value("collection")
-            .value_name("SET")
-            .help("Specify the redis set to connect to")
-    ).arg(
-        Arg::with_name("log-path")
-            .short("l")
-            .long("log-path")
-            .env("SCRAPER_WORKER_LOG_PATH")
-            .default_value("worker.log")
-            .value_name("PATH")
-            .help("Specify the log-file path")
-    ).arg(
-        Arg::with_name("log-level")
-            .short("o")
-            .long("log-level")
-            .env("LOG_LEVEL")
-            .default_value("info")
-            .value_name("LEVEL")
-            .help("Specify the log level {error, warn, info, debug, trace, off}")
-    ).arg(
-        Arg::with_name("filter-enable")
-            .short("f")
-            .long("filter-enable")
-            .env("SCRAPER_FILTER_ENABLE")
-            .default_value("false")
-            .value_name("BOOLEAN")
-            .help("Specify whether filtering is enabled")
-    ).arg(
-        Arg::with_name("filter-path")
-            .short("w")
-            .long("filter-path")
-            .env("SCRAPER_FILTER_PATH")
-            .default_value("src/filter/whitelist.txt")
-            .value_name("PATH")
-            .help("Specify path to list for filtering")
-    ).arg(
-        Arg::with_name("filter-type")
-            .short("t")
-            .long("filter-type")
-            .env("SCRAPER_FILTER_TYPE")
-            .default_value("white")
-            .value_name("STRING")
-            .help("Specify whether the list in the given filter-path is a 'white' or 'black'-list")
-    ).get_matches();
+        ).arg(
+            Arg::with_name("rabbitmq-port")
+                .short("p")
+                .long("rmq-port")
+                .env("SCRAPER_RABBITMQ_PORT")
+                .default_value("5672")
+                .value_name("PORT")
+                .help("Specify the RabbitMQ port to connect to")
+        ).arg(
+            Arg::with_name("redis-port")
+                .short("r")
+                .long("redis-port")
+                .env("SCRAPER_REDIS_PORT")
+                .default_value("6379")
+                .value_name("PORT")
+                .help("Specify the redis-port to connect to")
+        ).arg(
+            Arg::with_name("rabbitmq-exchange")
+                .short("e")
+                .long("rmq-exchange")
+                .env("SCRAPER_RABBITMQ_EXCHANGE")
+                .default_value("work")
+                .value_name("EXCHANGE")
+                .help("Specify the RabbitMQ exchange to connect to")
+        ).arg(
+            Arg::with_name("rabbitmq-prefetch-count")
+                .short("n")
+                .long("rmq-prefetch-count")
+                .env("SCRAPER_RABBITMQ_PREFETCH_COUNT")
+                .default_value("5")
+                .value_name("COUNT")
+                .help("Specify the number of tasks to prefetch")
+        ).arg(
+            Arg::with_name("rabbitmq-queue")
+                .short("q")
+                .long("rmq-queue")
+                .env("SCRAPER_RABBITMQ_QUEUE")
+                .default_value("frontier")
+                .value_name("QUEUE")
+                .help("Specify the RabbitMQ queue to connect to")
+        ).arg(
+            Arg::with_name("rabbitmq-collection-queue")
+                .short("c")
+                .long("rmq-collection")
+                .env("SCRAPER_RABBITMQ_COLLECTION_QUEUE")
+                .default_value("collection")
+                .value_name("COLLECTION")
+                .help("Specify the RabbitMQ collection queue to connect to")
+        ).arg(
+            Arg::with_name("sentinel")
+                .long("sentinel")
+                .env("SCRAPER_SENTINEL")
+                .default_value("none")
+                .value_name("NAME")
+                .help("An optional name of a master group for a sentinel Redis connection.")
+        ).arg(
+            Arg::with_name("redis-set")
+                .short("s")
+                .long("redis-set")
+                .env("SCRAPER_REDIS_SET")
+                .default_value("collection")
+                .value_name("SET")
+                .help("Specify the redis set to connect to")
+        ).arg(
+            Arg::with_name("log-path")
+                .short("l")
+                .long("log-path")
+                .env("SCRAPER_WORKER_LOG_PATH")
+                .default_value("worker.log")
+                .value_name("PATH")
+                .help("Specify the log-file path")
+        ).arg(
+            Arg::with_name("log-level")
+                .short("o")
+                .long("log-level")
+                .env("LOG_LEVEL")
+                .default_value("info")
+                .value_name("LEVEL")
+                .help("Specify the log level {error, warn, info, debug, trace, off}")
+        ).arg(
+            Arg::with_name("filter-enable")
+                .short("f")
+                .long("filter-enable")
+                .env("SCRAPER_FILTER_ENABLE")
+                .default_value("false")
+                .value_name("BOOLEAN")
+                .help("Specify whether filtering is enabled")
+        ).arg(
+            Arg::with_name("filter-path")
+                .short("w")
+                .long("filter-path")
+                .env("SCRAPER_FILTER_PATH")
+                .default_value("src/filter/whitelist.txt")
+                .value_name("PATH")
+                .help("Specify path to list for filtering")
+        ).arg(
+            Arg::with_name("filter-type")
+                .short("t")
+                .long("filter-type")
+                .env("SCRAPER_FILTER_TYPE")
+                .default_value("white")
+                .value_name("STRING")
+                .help("Specify whether the list in the given filter-path is a 'white' or 'black'-list")
+        ).get_matches();
 
     // Load config for logging to stdout and logfile.
     if let Ok(_handle) = log4rs::init_config(get_log4rs_config(
@@ -219,6 +219,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("redis-port").unwrap().to_string(),
         );
 
+        let sentinel_arg: &str = args.value_of("sentinel").unwrap();
+        let sentinel = if sentinel_arg != "none" {
+            Some(sentinel_arg)
+        } else {
+            None
+        };
+
         // Construct a worker and its components
         let manager = RMQRedisManager::new(
             args.value_of("rmq-address").unwrap().to_string(),
@@ -230,7 +237,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),
-            args.value_of("sentinel").unwrap().parse().expect("The sentinel argument was not a boolean")
+            sentinel
         )
         .expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
