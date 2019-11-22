@@ -142,6 +142,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .help("Specify the RabbitMQ collection queue to connect to")
     ).arg(
         Arg::with_name("sentinel")
+            .short("m")
             .long("sentinel")
             .env("SCRAPER_SENTINEL")
             .default_value("true")
@@ -195,6 +196,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             .default_value("white")
             .value_name("STRING")
             .help("Specify whether the list in the given filter-path is a 'white' or 'black'-list")
+    ).arg(
+        Arg::with_name("processing-time")
+            .short("d")
+            .long("log-processing-time")
+            .env("SCRAPER_LOG_PROCESSING_TIME")
+            .default_value("false")
+            .value_name("BOOLEAN")
+            .help("Specify whether to enable logging and calculating of finishing times for a task")
     ).get_matches();
 
     // Load config for logging to stdout and logfile.
@@ -231,9 +240,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),
-            args.value_of("sentinel").unwrap().parse().expect("The sentinel argument was not a boolean")
-        )
-        .expect("Failed to construct RMQRedisManager");
+            args.value_of("sentinel").unwrap().parse().expect("The sentinel argument was not a boolean"),
+        ).expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
         let filter: Box<dyn Filter> = if args.value_of("filter-enable").unwrap().parse().unwrap() {
@@ -259,7 +267,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             Box::new(archive),
             filter,
         );
-        worker.start();
+        println!("{:?}", args.value_of("processing-time"));
+        let logging = args.value_of("processing-time").unwrap().parse().expect("The log processing time argument was not a boolean");
+        worker.start(logging);
 
         Ok(())
     } else {
