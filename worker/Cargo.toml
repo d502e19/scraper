@@ -28,6 +28,8 @@ scraper = "^0.11.0"
 mockito = "^0.21.0"
 log = "^0.4.8"
 log4rs = "^0.8.3"
+influxdb = "^0.0.5"
+influx_db_client = "0.3.6"
 
 [build-dependencies]
 vergen = "3.0.4"

@@ -8,6 +8,9 @@ extern crate rand;
 extern crate redis;
 extern crate tokio;
 
+#[macro_use]
+extern crate influx_db_client;
+
 use std::error::Error;
 use std::io::ErrorKind;
 
@@ -35,6 +38,7 @@ mod downloader;
 mod errors;
 mod extractor;
 mod filter;
+mod metrics;
 mod rmqredis;
 mod split;
 mod task;
@@ -204,7 +208,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .default_value("false")
             .value_name("BOOLEAN")
             .help("Specify whether to enable logging and calculating of finishing times for a task")
-        ).get_matches();
+    ).get_matches();
 
     // Load config for logging to stdout and logfile.
     if let Ok(_handle) = log4rs::init_config(get_log4rs_config(
@@ -247,9 +251,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),
-            sentinel
-        )
-        .expect("Failed to construct RMQRedisManager");
+            sentinel,
+        ).expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
         let filter: Box<dyn Filter> = if args.value_of("filter-enable").unwrap().parse().unwrap() {
