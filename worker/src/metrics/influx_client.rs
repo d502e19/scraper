@@ -5,6 +5,7 @@
 // 3. Write multiple points to db
 
 use influx_db_client::{Client, Point, Points, Value, Precision, error};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct InfluxClient {
     address: String,
@@ -55,6 +56,24 @@ impl InfluxClient {
             println!("Encountered error when trying to write points to InfluxDB {:?}", e);
             error!("Encountered error when trying to write points to InfluxDB {:?}", e)
         }
+    }
+}
+
+/// Get current unix timestamp in milliseconds
+pub fn get_timestamp_millis(enable: bool) -> i64 {
+    if enable {
+        // Return current unix time as milliseconds if possible, otherwise zero
+        match SystemTime::now().duration_since(UNIX_EPOCH) {
+            Ok(time) => { return time.as_millis() as i64; }
+            Err(e) => {
+                error!("Could not get system time");
+                // Return zero if no time could be found to avoid breaking entire worker
+                0
+            }
+        }
+    } else {
+        // Set start_time to zero if logging is unset. Probably carries a minuscule performance penalty.
+        0
     }
 }
 

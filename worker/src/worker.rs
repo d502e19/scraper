@@ -7,6 +7,8 @@ use crate::task::Task;
 use crate::traits::{Archive, Downloader, Extractor, Filter, Manager, Normaliser, TaskProcessResult};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::ops::Sub;
+use crate::metrics::influx_client::{InfluxClient, get_timestamp_millis};
+use influx_db_client::{Points, Point, Value};
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
@@ -53,27 +55,30 @@ impl<S, D> Worker<S, D> {
     /// Starts the worker. It will now listen to the manager for new tasks are resolve those.
     /// Resolving includes downloading, extracting, archiving, and submitting new tasks.
     /// This is a blocking operation.
-    pub fn start(&self, log_process: bool) {
+    pub fn start(&self, enable_measuring: bool) {
         info!("Worker {} has started", self.name);
+        let client = InfluxClient::new("localhost",
+                                       8086,
+                                       "root",
+                                       "hunter2",
+                                       "scraper_db");
         self.manager.subscribe(&|task| {
             // Only calculate start_time if log_process flag set high
-            let mut task_start_time;
-            if log_process {
-                task_start_time = match SystemTime::now().duration_since(UNIX_EPOCH) {
-                    Ok(time) => { time.as_millis() }
-                    Err(e) => {
-                        error!("Could not get system time during receiving task on worker {} and task {}",
-                               self.name,
-                               task.url);
-                        // Return zero if no time could be found to avoid breaking entire worker
-                        0
-                    }
-                };
+            let task_start_time = get_timestamp_millis(enable_measuring);
+            // Declare mutable points for aggregating datapoints
+            let mut data_point: Point;
+            if enable_measuring {
+                data_point = Point::new(format!("worker_processing_time").as_str())
+                    .add_timestamp(task_start_time)
+                    .add_field("start_time", Value::Integer(task_start_time))
+                    .add_tag("instance", Value::String(self.name.clone())) // Fixme to be UUID
+                    .to_owned()
             } else {
-                // Set start_time to zero if logging is unset. Probably carries a minuscule performance penalty.
-                task_start_time = 0;
+                data_point = Point::new("invalid_measurement");
             }
+
             info!("Worker {} received task {}", self.name, task.url);
+            data_point.add_field("receive_task_time", Value::Integer(get_timestamp_millis(enable_measuring)));
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     error!("{} failed to download a page. {}", self.name, e);
@@ -113,23 +118,7 @@ impl<S, D> Worker<S, D> {
                                     return TaskProcessResult::from(e);
                                 }
                             }
-                            // Only calculate finishing_time and log if log_process flag set high
-                            if log_process {
-                                let finishing_time = match SystemTime::now().duration_since(UNIX_EPOCH) {
-                                    Ok(time) => {
-                                        // Subtract start_time from current time, rendering the finishing time
-                                        time.as_millis().sub(task_start_time)
-                                    }
-                                    Err(e) => {
-                                        error!("Could not get system time during receiving task on worker {} and task {}",
-                                               self.name,
-                                               task.url);
-                                        // Return zero if no time could be found to avoid breaking entire worker
-                                        0
-                                    }
-                                };
-                                info!("Worker {} finished task {} in {:?}ms", self.name, task.url, finishing_time);
-                            }
+                            // TODO: finishing time
                             return TaskProcessResult::Ok;
                         }
                     }
