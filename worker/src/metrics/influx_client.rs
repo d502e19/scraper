@@ -4,7 +4,7 @@
 // 2.1 Validate points being written / maybe unittest (which requires reading)
 // 3. Write multiple points to db
 
-use influx_db_client::{Client, Point, Points, Value, Precision};
+use influx_db_client::{Client, Point, Points, Value, Precision, error};
 
 pub struct InfluxClient {
     address: String,
@@ -27,64 +27,102 @@ impl InfluxClient {
             username: String::from(username),
             password: String::from(password),
             database: String::from(database),
-            // Setup a influx_db_client on constructing
             client: Client::new(format!("http://{}:{}", address, port),
                                 String::from(database))
                 .set_authentication(username, password),
         };
     }
 
-    pub fn write(self, data: &str) {
-        let mut point = point!("test1");
-        point
-            .add_field("foo", Value::String("bar".to_string()))
-            .add_field("integer", Value::Integer(11))
-            .add_field("float", Value::Float(22.3))
-            .add_field("'boolean'", Value::Boolean(false));
+    /// Drop and create registered database, effectively resetting it.
+    /// Requires sufficient user privileges to execute.
+    pub fn reset_database(&self) -> Result<(), error::Error> {
+        self.client.drop_database(self.database.as_ref())?;
+        self.client.create_database(self.database.as_ref())?;
+        Ok(())
+    }
 
-        let point1 = Point::new("test1")
-            .add_tag("tags", Value::String(String::from("\\\"fda")))
-            .add_tag("number", Value::Integer(12))
-            .add_tag("float", Value::Float(12.6))
-            .add_field("fd", Value::String("'3'".to_string()))
-            .add_field("quto", Value::String("\\\"fda".to_string()))
-            .add_field("quto1", Value::String("\"fda".to_string()))
-            .to_owned();
+    /// Write a single point to a InfluxDB connection and log an error on failure
+    pub fn write_point(&self, point: Point) {
+        if let Err(e) = self.client.write_point(point, Some(Precision::Nanoseconds), None) {
+            println!("Encountered error when trying to write point to InfluxDB {:?}", e);
+            error!("Encountered error when trying to write point to InfluxDB {:?}", e)
+        }
+    }
 
-        let points = points!(point1, point);
-
-        // if Precision is None, the default is second
-        // Multiple write
-        let _ = self.client.write_points(points, Some(Precision::Seconds), None).unwrap();
-
-        // query, it's type is Option<Vec<Node>>
-        let res = self.client.query("select * from test1", None).unwrap();
-        println!("{:?}", res.unwrap()[0].series)
+    /// Write multiple points to a InfluxDB connection and log an error on failure
+    pub fn write_points(&self, points: Points) {
+        if let Err(e) = self.client.write_points(points, Some(Precision::Nanoseconds), None) {
+            println!("Encountered error when trying to write points to InfluxDB {:?}", e);
+            error!("Encountered error when trying to write points to InfluxDB {:?}", e)
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::metrics::influx_client::InfluxClient;
+    use influx_db_client::{Point, Value, Points};
+    use std::time::{SystemTime, UNIX_EPOCH};
 
+    /// Simply test that object is constructable
     #[test]
+    #[ignore]
     fn create_object() {
         let client = InfluxClient::new("localhost",
                                        8086,
                                        "root",
                                        "hunter2",
                                        "scraper_db");
-        println!("yeet");
     }
 
+    /// Sandbox test for InfluxDB implementation. Is ignored unless specifically requested.
     #[test]
-    fn send_post() {
+    #[ignore]
+    fn write_point() {
         let client = InfluxClient::new("localhost",
                                        8086,
                                        "root",
                                        "hunter2",
                                        "scraper_db");
-        client.write("point");
-        println!("yote");
+        if let Err(e) = client.reset_database() {
+            println!("Could not reset database. {}", e)
+        }
+
+        let point = Point::new("test1")
+            //.add_timestamp(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() as i64)
+            .add_field("thing", Value::Boolean(false))
+            .to_owned();
+        let cloned_point = point.clone();
+        client.write_point(point);
+        let recv_point = client.client.query("select * from test1", None).unwrap();
+        println!("{:?}", recv_point.unwrap()[0].series);
+    }
+
+    /// Sandbox test for InfluxDB implementation. Is ignored unless specifically requested.
+    #[test]
+    fn write_points() {
+        let client = InfluxClient::new("localhost",
+                                       8086,
+                                       "root",
+                                       "hunter2",
+                                       "scraper_db");
+        if let Err(e) = client.reset_database() {
+            println!("Could not reset database. {}", e)
+        }
+
+        let points = Points::create_new((1..101)
+            .into_iter()
+            .map(|x|
+                Point::new("test1")
+                    .add_field("thing", Value::Integer(x))
+                    .add_timestamp(139659585792080 + x)
+                    .to_owned()
+            )
+            .collect::<Vec<Point>>()
+        );
+
+        client.write_points(points);
+        let recv_point = client.client.query("select * from test1", None).unwrap();
+        println!("{:?}", recv_point.unwrap()[0].series);
     }
 }
