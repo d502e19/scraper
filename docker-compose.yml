@@ -24,3 +24,5 @@ services:
       INFLUXDB_ADMIN_ENABLED: "true"
       INFLUXDB_ADMIN_USER: "root"
       INFLUXDB_ADMIN_PASSWORD: "hunter2"
+      INFLUXDB_USER: "worker"
+      INFLUXDB_USER_PASSWORD: "password"

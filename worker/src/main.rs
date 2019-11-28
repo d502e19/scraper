@@ -230,7 +230,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .short("i")
                 .long("influx-user")
                 .env("SCRAPER_METRICS_INFLUXDB_USER")
-                .default_value("root")
+                .default_value("worker")
                 .value_name("STRING")
                 .help("Specify InfluxDB username")
         ).arg(
@@ -238,7 +238,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .short("j")
                 .long("influx-password")
                 .env("SCRAPER_METRICS_INFLUXDB_PASSWORD")
-                .default_value("hunter2")
+                .default_value("password")
                 .value_name("STRING")
                 .help("Specify InfluxDB password")
         ).arg(
