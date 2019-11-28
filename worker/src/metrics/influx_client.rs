@@ -57,33 +57,54 @@ impl InfluxClient {
     }
 }
 
-/// Get current unix timestamp in milliseconds
-pub fn get_timestamp_millis(enable: bool) -> i64 {
-    if enable {
-        // Return current unix time as milliseconds if possible, otherwise zero
-        match SystemTime::now().duration_since(UNIX_EPOCH) {
-            Ok(time) => { return time.as_millis() as i64; }
-            Err(e) => {
-                error!("Could not get system time");
-                // Return zero if no time could be found to avoid breaking entire worker
-                0
-            }
-        }
-    } else {
-        // Set start_time to zero if logging is unset. Probably carries a minuscule performance penalty.
-        0
+pub struct MetricSession {
+    point: Point,
+    start_time: i64,
+    last_time: i64,
+}
+
+impl MetricSession {
+    pub fn new(measurement_name: &str, worker_instance: &str) -> MetricSession {
+        let time = get_timestamp_millis();
+        return MetricSession {
+            point: Point::new(measurement_name)
+                .add_timestamp(time)
+                .add_tag("instance", Value::String(worker_instance.to_string()))
+                .to_owned(),
+            start_time: time,
+            last_time: 0 as i64,
+        };
+    }
+
+    /// Adds a measuring field to Point with given parameters
+    pub fn add_data_point(&mut self, field: &str) {
+        let time = get_timestamp_millis();
+        self.point.add_field(field, Value::Integer(time - self.last_time));
+        // Save current time as last_time for next add_data_point
+        self.last_time = time;
+    }
+
+    /// Add task finishing time to field 'task_finishing_time'
+    pub fn add_finishing_time(&mut self) {
+        self.point.add_field("task_finishing_time", Value::Integer(get_timestamp_millis() - self.start_time));
+    }
+
+    /// Write point to InfluxDB, consuming self in the process
+    pub fn write_point(self, client: &InfluxClient) {
+        client.write_point(self.point);
     }
 }
 
-/// Adds a measuring field to Point with given parameters if enabled. Returns 0 on disable.
-pub fn add_data_point(point: &mut Point, field: &str, base_time: i64, enable: bool) -> i64 {
-    if enable {
-        let time = get_timestamp_millis(enable);
-        //let time = get_timestamp_millis(enable) - base_time;
-        point.add_field(field, Value::Integer(time - base_time));
-        time
-    } else {
-        0
+/// Get current unix timestamp in milliseconds
+pub fn get_timestamp_millis() -> i64 {
+    // Return current unix time as milliseconds if possible, otherwise zero
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(time) => { return time.as_millis() as i64; }
+        Err(e) => {
+            error!("Could not get system time");
+            // Return zero if no time could be found to avoid breaking entire worker
+            0
+        }
     }
 }
 
@@ -108,6 +129,7 @@ mod tests {
     #[test]
     #[ignore]
     fn write_point() {
+        /*
         let client = InfluxClient::new("localhost",
                                        8086,
                                        "root",
@@ -125,12 +147,14 @@ mod tests {
         client.write_point(point);
         let recv_point = client.client.query("select * from test1", None).unwrap();
         println!("{:?}", recv_point.unwrap()[0].series);
+        */
     }
 
     /// Sandbox test for InfluxDB implementation. Is ignored unless specifically requested.
     #[test]
     #[ignore]
     fn write_points() {
+        /*
         let client = InfluxClient::new("localhost",
                                        8086,
                                        "root",
@@ -154,5 +178,6 @@ mod tests {
         client.write_points(points);
         let recv_point = client.client.query("select * from test1", None).unwrap();
         println!("{:?}", recv_point.unwrap()[0].series);
+        */
     }
 }
