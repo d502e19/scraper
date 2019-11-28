@@ -77,10 +77,16 @@ pub fn get_timestamp_millis(enable: bool) -> i64 {
     }
 }
 
-/// Adds a measuring field to Point with given parameters if enabled
-pub fn add_data_point(point: &mut Point, field: &str, base_time: i64, enable: bool) {
+/// Adds a measuring field to Point with given parameters if enabled. Returns 0 on disable.
+pub fn add_data_point(point: &mut Point, field: &str, base_time: i64, enable: bool) -> i64 {
     if enable {
-        point.add_field(field, Value::Integer(get_timestamp_millis(enable) - base_time));
+        let time = get_timestamp_millis(enable);
+        //let time = get_timestamp_millis(enable) - base_time;
+        point.add_field(field, Value::Integer(time - base_time));
+        assert!(base_time >= 3600000, "Data_point time was longer than expected (1 hour) on {}, was: {}", field, time);
+        time
+    } else {
+        0
     }
 }
 

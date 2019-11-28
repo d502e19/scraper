@@ -60,13 +60,14 @@ impl<S, D> Worker<S, D> {
         self.manager.subscribe(&|task| {
             // Only calculate start_time if log_process flag set high
             let task_start_time = get_timestamp_millis(enable_measuring);
-            // Declare mutable points for aggregating measuring data
+            // Initialise mutable 'last_time' to calculate time-deltas on each action
+            let mut last_time: i64 = task_start_time;
+            // Declare mutable Point for aggregating task measuring data
             let mut data_point: Point;
             // Do expensive setup if measuring is enabled, otherwise only setup a 'cheap' Point to avoid scope issues
             if enable_measuring {
                 data_point = Point::new(format!("worker_processing_time").as_str())
                     .add_timestamp(task_start_time)
-                    .add_field("start_time", Value::Integer(task_start_time))
                     .add_tag("instance", Value::String(self.name.clone())) // Fixme to be UUID
                     .to_owned()
             } else {
@@ -75,15 +76,14 @@ impl<S, D> Worker<S, D> {
 
             info!("Worker {} received task {}", self.name, task.url);
             // Note that this function only mutates the point if 'enable' is high to minimise impact on non-measuring runs
-            add_data_point(&mut data_point, "receive_task_time", task_start_time, enable_measuring);
-
+            last_time = add_data_point(&mut data_point, "receive_task_time", last_time, enable_measuring);
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     error!("{} failed to download a page. {}", self.name, e);
                     return TaskProcessResult::from(e);
                 }
                 Ok(page) => {
-                    add_data_point(&mut data_point, "download_task_time", task_start_time, enable_measuring);
+                    last_time = add_data_point(&mut data_point, "download_task_time", last_time, enable_measuring);
 
                     match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
@@ -91,14 +91,14 @@ impl<S, D> Worker<S, D> {
                             return TaskProcessResult::from(e);
                         }
                         Ok((mut urls, data)) => {
-                            add_data_point(&mut data_point, "extract_task_time", task_start_time, enable_measuring);
+                            last_time = add_data_point(&mut data_point, "extract_task_time", last_time, enable_measuring);
 
                             // Archiving
                             if let Err(e) = self.archive.archive_content(data) {
                                 error!("{} failed archiving some data. {}", self.name, e);
                                 return TaskProcessResult::from(e);
                             }
-                            add_data_point(&mut data_point, "archive_task_time", task_start_time, enable_measuring);
+                            last_time = add_data_point(&mut data_point, "archive_task_time", last_time, enable_measuring);
 
                             // Normalising urls
                             let tasks: Vec<Task> = self.normaliser.normalise(urls)
@@ -106,16 +106,16 @@ impl<S, D> Worker<S, D> {
                                 .map(|url| Task { url })
                                 .collect();
 
-                            add_data_point(&mut data_point, "normalise_task_time", task_start_time, enable_measuring);
+                            last_time = add_data_point(&mut data_point, "normalise_task_time", last_time, enable_measuring);
 
                             let filtered_tasks = self.filter.filter(tasks);
 
-                            add_data_point(&mut data_point, "filter_task_time", task_start_time, enable_measuring);
+                            last_time = add_data_point(&mut data_point, "filter_task_time", last_time, enable_measuring);
 
                             // Cull tasks that have already been submitted once, then submit the new tasks
                             match self.manager.cull_known(filtered_tasks) {
                                 Ok(new_tasks) => {
-                                    add_data_point(&mut data_point, "culling_task_time", task_start_time, enable_measuring);
+                                    last_time = add_data_point(&mut data_point, "culling_task_time", last_time, enable_measuring);
 
                                     if let Err(e) = self.manager.submit(new_tasks) {
                                         error!("{} failed submitting new tasks to the manager. {}", self.name, e);
@@ -127,6 +127,7 @@ impl<S, D> Worker<S, D> {
                                     return TaskProcessResult::from(e);
                                 }
                             }
+                            // Note that base_time is set to start time, to get entire duration of task processing
                             add_data_point(&mut data_point, "finishing_task_time", task_start_time, enable_measuring);
                             if enable_measuring {
                                 // Write collected point of measuring data for given task and write to database through client
