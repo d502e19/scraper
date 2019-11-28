@@ -77,6 +77,13 @@ pub fn get_timestamp_millis(enable: bool) -> i64 {
     }
 }
 
+/// Adds a measuring field to Point with given parameters if enabled
+pub fn add_data_point(point: &mut Point, field: &str, base_time: i64, enable: bool) {
+    if enable {
+        point.add_field(field, Value::Integer(get_timestamp_millis(enable) - base_time));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::metrics::influx_client::InfluxClient;
