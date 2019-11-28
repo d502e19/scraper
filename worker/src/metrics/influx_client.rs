@@ -132,6 +132,7 @@ mod tests {
 
     /// Sandbox test for InfluxDB implementation. Is ignored unless specifically requested.
     #[test]
+    #[ignore]
     fn write_points() {
         let client = InfluxClient::new("localhost",
                                        8086,
