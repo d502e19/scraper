@@ -45,7 +45,6 @@ impl InfluxClient {
     /// Write a single point to a InfluxDB connection and log an error on failure
     pub fn write_point(&self, point: Point) {
         if let Err(e) = self.client.write_point(point, Some(Precision::Nanoseconds), None) {
-            println!("Encountered error when trying to write point to InfluxDB {:?}", e);
             error!("Encountered error when trying to write point to InfluxDB {:?}", e)
         }
     }
@@ -53,7 +52,6 @@ impl InfluxClient {
     /// Write multiple points to a InfluxDB connection and log an error on failure
     pub fn write_points(&self, points: Points) {
         if let Err(e) = self.client.write_points(points, Some(Precision::Nanoseconds), None) {
-            println!("Encountered error when trying to write points to InfluxDB {:?}", e);
             error!("Encountered error when trying to write points to InfluxDB {:?}", e)
         }
     }
