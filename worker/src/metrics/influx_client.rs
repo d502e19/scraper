@@ -83,7 +83,6 @@ pub fn add_data_point(point: &mut Point, field: &str, base_time: i64, enable: bo
         let time = get_timestamp_millis(enable);
         //let time = get_timestamp_millis(enable) - base_time;
         point.add_field(field, Value::Integer(time - base_time));
-        assert!(base_time >= 3600000, "Data_point time was longer than expected (1 hour) on {}, was: {}", field, time);
         time
     } else {
         0
