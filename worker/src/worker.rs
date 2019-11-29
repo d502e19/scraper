@@ -7,6 +7,8 @@ use crate::task::Task;
 use crate::traits::{Archive, Downloader, Extractor, Filter, Manager, Normaliser, TaskProcessResult};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::ops::Sub;
+use crate::metrics::influx_client::{InfluxClient, get_timestamp_millis, MetricSession};
+use influx_db_client::{Points, Point, Value};
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
 /// define every aspect of the workers behaviour.
@@ -53,44 +55,37 @@ impl<S, D> Worker<S, D> {
     /// Starts the worker. It will now listen to the manager for new tasks are resolve those.
     /// Resolving includes downloading, extracting, archiving, and submitting new tasks.
     /// This is a blocking operation.
-    pub fn start(&self, log_process: bool) {
+    pub fn start(&self, influxdb_client: Option<InfluxClient>) {
         info!("Worker {} has started", self.name);
         self.manager.subscribe(&|task| {
-            // Only calculate start_time if log_process flag set high
-            let mut task_start_time;
-            if log_process {
-                task_start_time = match SystemTime::now().duration_since(UNIX_EPOCH) {
-                    Ok(time) => { time.as_millis() }
-                    Err(e) => {
-                        error!("Could not get system time during receiving task on worker {} and task {}",
-                               self.name,
-                               task.url);
-                        // Return zero if no time could be found to avoid breaking entire worker
-                        0
-                    }
-                };
-            } else {
-                // Set start_time to zero if logging is unset. Probably carries a minuscule performance penalty.
-                task_start_time = 0;
-            }
+            let mut metric_session = MetricSession::new("worker_processing_time", &self.name);
+
             info!("Worker {} received task {}", self.name, task.url);
+
+            metric_session.add_data_point("receive_task_time");
+
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     error!("{} failed to download a page. {}", self.name, e);
                     return TaskProcessResult::from(e);
                 }
                 Ok(page) => {
+                    metric_session.add_data_point("download_task_time");
+
                     match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
                             error!("{} failed to extract data from page. {}", self.name, e);
                             return TaskProcessResult::from(e);
                         }
                         Ok((mut urls, data)) => {
+                            metric_session.add_data_point("extract_task_time");
+
                             // Archiving
                             if let Err(e) = self.archive.archive_content(data) {
                                 error!("{} failed archiving some data. {}", self.name, e);
                                 return TaskProcessResult::from(e);
                             }
+                            metric_session.add_data_point("archive_task_time");
 
                             // Normalising urls
                             let tasks: Vec<Task> = self.normaliser.normalise(urls)
@@ -98,11 +93,17 @@ impl<S, D> Worker<S, D> {
                                 .map(|url| Task { url })
                                 .collect();
 
+                            metric_session.add_data_point("normalise_task_time");
+
                             let filtered_tasks = self.filter.filter(tasks);
+
+                            metric_session.add_data_point("filter_task_time");
 
                             // Cull tasks that have already been submitted once, then submit the new tasks
                             match self.manager.cull_known(filtered_tasks) {
                                 Ok(new_tasks) => {
+                                    metric_session.add_data_point("culling_task_time");
+
                                     if let Err(e) = self.manager.submit(new_tasks) {
                                         error!("{} failed submitting new tasks to the manager. {}", self.name, e);
                                         return TaskProcessResult::from(e);
@@ -113,23 +114,11 @@ impl<S, D> Worker<S, D> {
                                     return TaskProcessResult::from(e);
                                 }
                             }
-                            // Only calculate finishing_time and log if log_process flag set high
-                            if log_process {
-                                let finishing_time = match SystemTime::now().duration_since(UNIX_EPOCH) {
-                                    Ok(time) => {
-                                        // Subtract start_time from current time, rendering the finishing time
-                                        time.as_millis().sub(task_start_time)
-                                    }
-                                    Err(e) => {
-                                        error!("Could not get system time during receiving task on worker {} and task {}",
-                                               self.name,
-                                               task.url);
-                                        // Return zero if no time could be found to avoid breaking entire worker
-                                        0
-                                    }
-                                };
-                                info!("Worker {} finished task {} in {:?}ms", self.name, task.url, finishing_time);
+
+                            if let Some(client) = &influxdb_client {
+                                metric_session.write_point(client);
                             }
+
                             return TaskProcessResult::Ok;
                         }
                     }
@@ -138,4 +127,3 @@ impl<S, D> Worker<S, D> {
         });
     }
 }
-

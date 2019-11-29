@@ -8,6 +8,9 @@ extern crate rand;
 extern crate redis;
 extern crate tokio;
 
+#[macro_use]
+extern crate influx_db_client;
+
 use std::error::Error;
 use std::io::ErrorKind;
 
@@ -22,6 +25,7 @@ use crate::defaultnormaliser::DefaultNormaliser;
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
 use crate::filter::filter::{Blacklist, NoFilter, Whitelist};
+use crate::metrics::influx_client::InfluxClient;
 use crate::rmqredis::RMQRedisManager;
 use crate::task::Task;
 use crate::traits::Filter;
@@ -35,6 +39,7 @@ mod downloader;
 mod errors;
 mod extractor;
 mod filter;
+mod metrics;
 mod rmqredis;
 mod split;
 mod task;
@@ -143,7 +148,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ).arg(
             Arg::with_name("sentinel")
                 .short("m")
-            .long("sentinel")
+                .long("sentinel")
                 .env("SCRAPER_SENTINEL")
                 .default_value("none")
                 .value_name("NAME")
@@ -196,14 +201,54 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .default_value("white")
                 .value_name("STRING")
                 .help("Specify whether the list in the given filter-path is a 'white' or 'black'-list")
-    ).arg(
-        Arg::with_name("processing-time")
-            .short("d")
-            .long("log-processing-time")
-            .env("SCRAPER_LOG_PROCESSING_TIME")
-            .default_value("false")
-            .value_name("BOOLEAN")
-            .help("Specify whether to enable logging and calculating of finishing times for a task")
+        ).arg(
+            Arg::with_name("metrics-enable")
+                .short("d")
+                .long("enable-metrics")
+                .env("SCRAPER_METRICS_ENABLE")
+                .default_value("false")
+                .value_name("BOOLEAN")
+                .help("Specify whether to enable metric logging")
+        ).arg(
+            Arg::with_name("influx-addr")
+                .short("g")
+                .long("influx-addr")
+                .env("SCRAPER_METRICS_INFLUXDB_ADDR")
+                .default_value("localhost")
+                .value_name("STRING")
+                .help("Specify InfluxDB address")
+        ).arg(
+            Arg::with_name("influx-port")
+                .short("h")
+                .long("influx-port")
+                .env("SCRAPER_METRICS_INFLUXDB_PORT")
+                .default_value("8086")
+                .value_name("INT")
+                .help("Specify InfluxDB port")
+        ).arg(
+            Arg::with_name("influx-username")
+                .short("i")
+                .long("influx-user")
+                .env("SCRAPER_METRICS_INFLUXDB_USER")
+                .default_value("worker")
+                .value_name("STRING")
+                .help("Specify InfluxDB username")
+        ).arg(
+            Arg::with_name("influx-password")
+                .short("j")
+                .long("influx-password")
+                .env("SCRAPER_METRICS_INFLUXDB_PASSWORD")
+                .default_value("password")
+                .value_name("STRING")
+                .help("Specify InfluxDB password")
+        ).arg(
+            Arg::with_name("influx-database")
+                .short("k")
+                .long("influx-database")
+                .env("SCRAPER_METRICS_INFLUXDB_DATABASE")
+                .default_value("scraper_db")
+                .value_name("STRING")
+                .help("Specify InfluxDB database")
         ).get_matches();
 
     // Load config for logging to stdout and logfile.
@@ -247,9 +292,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.value_of("rabbitmq-queue").unwrap().to_string(),
             args.value_of("rabbitmq-collection-queue").unwrap().to_string(),
             args.value_of("redis-set").unwrap().to_string(),
-            sentinel
-        )
-        .expect("Failed to construct RMQRedisManager");
+            sentinel,
+        ).expect("Failed to construct RMQRedisManager");
         let downloader = DefaultDownloader::new();
         let extractor = HTMLExtractorBase::new(HTMLLinkExtractor::new());
         let filter: Box<dyn Filter> = if args.value_of("filter-enable").unwrap().parse().unwrap() {
@@ -275,8 +319,28 @@ fn main() -> Result<(), Box<dyn Error>> {
             Box::new(archive),
             filter,
         );
-        worker.start(args.value_of("processing-time").unwrap().parse()
-            .expect("The log processing time argument was not a boolean"));
+
+        let influxdb_client = if args
+            .value_of("metrics-enable")
+            .unwrap()
+            .parse()
+            .expect("The 'metrics-enable' argument was not a boolean")
+        {
+            Some(InfluxClient::new(
+                args.value_of("influx-addr").unwrap(),
+                args.value_of("influx-port")
+                    .unwrap()
+                    .parse()
+                    .expect("The 'influx-port' argument was not an int"),
+                args.value_of("influx-username").unwrap(),
+                args.value_of("influx-password").unwrap(),
+                args.value_of("influx-database").unwrap(),
+            ))
+        } else {
+            None
+        };
+
+        worker.start(influxdb_client);
 
         Ok(())
     } else {
