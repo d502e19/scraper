@@ -340,11 +340,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             None
         };
 
-        worker.start(
-            args.value_of("metrics-enable").unwrap().parse()
-                .expect("The log processing time argument was not a boolean"),
-            influxdb_client,
-        );
+        worker.start(influxdb_client);
 
         Ok(())
     } else {

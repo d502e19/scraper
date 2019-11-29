@@ -55,7 +55,7 @@ impl<S, D> Worker<S, D> {
     /// Starts the worker. It will now listen to the manager for new tasks are resolve those.
     /// Resolving includes downloading, extracting, archiving, and submitting new tasks.
     /// This is a blocking operation.
-    pub fn start(&self, enable_measuring: bool, influxdb_client: Option<InfluxClient>) {
+    pub fn start(&self, influxdb_client: Option<InfluxClient>) {
         info!("Worker {} has started", self.name);
         self.manager.subscribe(&|task| {
             let mut metric_session = MetricSession::new("worker_processing_time", &self.name);
@@ -127,4 +127,3 @@ impl<S, D> Worker<S, D> {
         });
     }
 }
-
