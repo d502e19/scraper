@@ -14,7 +14,7 @@ USAGE:
     worker [OPTIONS]
 
 FLAGS:
-        --help       Prints help information
+    -h, --help       Prints help information
     -V, --version    Prints version information
 
 OPTIONS:
@@ -32,7 +32,7 @@ OPTIONS:
                                            [default: scraper_db]
     -j, --influx-password <STRING>         Specify InfluxDB password [env: SCRAPER_METRICS_INFLUXDB_PASSWORD=]
                                            [default: password]
-    -h, --influx-port <INT>                Specify InfluxDB port [env: SCRAPER_METRICS_INFLUXDB_PORT=]  [default: 8086]
+    -u, --influx-port <INT>                Specify InfluxDB port [env: SCRAPER_METRICS_INFLUXDB_PORT=]  [default: 8086]
     -i, --influx-user <STRING>             Specify InfluxDB username [env: SCRAPER_METRICS_INFLUXDB_USER=]  [default:
                                            worker]
     -o, --log-level <LEVEL>                Specify the log level {error, warn, info, debug, trace, off} [env:

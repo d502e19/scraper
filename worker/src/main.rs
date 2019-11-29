@@ -219,7 +219,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .help("Specify InfluxDB address")
         ).arg(
             Arg::with_name("influx-port")
-                .short("h")
+                .short("u")
                 .long("influx-port")
                 .env("SCRAPER_METRICS_INFLUXDB_PORT")
                 .default_value("8086")
