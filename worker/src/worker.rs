@@ -95,7 +95,7 @@ impl<S, D> Worker<S, D> {
                                 .map(|url| Task { url })
                                 .collect();
                             time_session.add_time_field("normalise_task_time");
-                            count_session.add_count_field("extracted_links", tasks.len() as i64);
+                            count_session.add_count_field("normalised_links", tasks.len() as i64);
 
                             let filtered_tasks = self.filter.filter(tasks);
 
@@ -107,6 +107,7 @@ impl<S, D> Worker<S, D> {
                                 Ok(new_tasks) => {
                                     time_session.add_time_field("culling_task_time");
                                     count_session.add_count_field("culled_links", new_tasks.len() as i64);
+                                    count_session.add_final_count_field("submitted_links", new_tasks.len() as i64);
 
 
                                     if let Err(e) = self.manager.submit(new_tasks) {

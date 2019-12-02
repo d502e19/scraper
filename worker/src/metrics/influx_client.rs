@@ -118,8 +118,13 @@ impl CountSession {
     }
 
     pub fn add_count_field(&mut self, field: &str, count: i64) {
+        assert!(count <= self.last_count);
         self.point.add_field(field, Value::Integer(self.last_count - count));
         self.last_count = count;
+    }
+
+    pub fn add_final_count_field(&mut self, field: &str, count: i64) {
+        self.point.add_field(field, Value::Integer(count));
     }
 
     pub fn write_point(self, client: &InfluxClient) {
