@@ -18,37 +18,45 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -f, --filter-enable <BOOLEAN>          Specify whether filtering is enabled [env: SCRAPER_FILTER_ENABLE=]  [default:
-                                           false]
-    -w, --filter-path <PATH>               Specify path to list for filtering [env: SCRAPER_FILTER_PATH=]  [default:
-                                           src/filter/whitelist.txt]
-    -t, --filter-type <STRING>             Specify whether the list in the given filter-path is a 'white' or
-                                           'black'-list [env: SCRAPER_FILTER_TYPE=]  [default: white]
-    -o, --log-level <LEVEL>                Specify the log level {error, warn, info, debug, trace, off} [env:
-                                           LOG_LEVEL=]  [default: info]
-    -l, --log-path <PATH>                  Specify the log-file path [env: SCRAPER_WORKER_LOG_PATH=]  [default:
-                                           worker.log]
-    -d, --log-processing-time <BOOLEAN>    Specify whether to enable logging and calculating of finishing times for a
-                                           task [env: SCRAPER_LOG_PROCESSING_TIME=true]  [default: false]
-    -c, --rmq-collection <COLLECTION>      Specify the RabbitMQ collection queue to connect to [env:
-                                           SCRAPER_RABBITMQ_COLLECTION_QUEUE=]  [default: collection]
-    -e, --rmq-exchange <EXCHANGE>          Specify the RabbitMQ exchange to connect to [env: SCRAPER_RABBITMQ_EXCHANGE=]
-                                           [default: work]
-    -p, --rmq-port <PORT>                  Specify the RabbitMQ port to connect to [env: SCRAPER_RABBITMQ_PORT=]
-                                           [default: 5672]
-    -n, --rmq-prefetch-count <COUNT>       Specify the number of tasks to prefetch [env:
-                                           SCRAPER_RABBITMQ_PREFETCH_COUNT=]  [default: 5]
-    -q, --rmq-queue <QUEUE>                Specify the RabbitMQ queue to connect to [env: SCRAPER_RABBITMQ_QUEUE=]
-                                           [default: frontier]
-    -b, --redis-addr <ADDR>                Specify the Redis address [env: SCRAPER_REDIS_ADDRESS=]  [default: localhost]
-    -r, --redis-port <PORT>                Specify the redis-port to connect to [env: SCRAPER_REDIS_PORT=]  [default:
-                                           6379]
-    -s, --redis-set <SET>                  Specify the redis set to connect to [env: SCRAPER_REDIS_SET=]  [default:
-                                           collection]
-    -a, --rmq-addr <ADDR>                  Specify the RabbitMQ address [env: SCRAPER_RMQ_ADDRESS=]  [default:
-                                           localhost]
-    -m, --sentinel <BOOLEAN>               Specify whether to use a sentinel redis connection or not [env:
-                                           SCRAPER_SENTINEL=false]  [default: true]
+    -f, --filter-enable <BOOLEAN>        Specify whether filtering is enabled [env: SCRAPER_FILTER_ENABLE=]  [default:
+                                         false]
+    -w, --filter-path <PATH>             Specify path to list for filtering [env: SCRAPER_FILTER_PATH=]  [default:
+                                         src/filter/whitelist.txt]
+    -t, --filter-type <STRING>           Specify whether the list in the given filter-path is a 'white' or 'black'-list
+                                         [env: SCRAPER_FILTER_TYPE=]  [default: white]
+    -g, --influx-addr <STRING>           Specify InfluxDB address [env: SCRAPER_METRICS_INFLUXDB_ADDR=]  [default:
+                                         localhost]
+    -k, --influx-database <STRING>       Specify InfluxDB database [env: SCRAPER_METRICS_INFLUXDB_DATABASE=]  [default:
+                                         scraper_db]
+    -j, --influx-password <STRING>       Specify InfluxDB password [env: SCRAPER_METRICS_INFLUXDB_PASSWORD=]  [default:
+                                         password]
+    -u, --influx-port <INT>              Specify InfluxDB port [env: SCRAPER_METRICS_INFLUXDB_PORT=]  [default: 8086]
+    -i, --influx-user <STRING>           Specify InfluxDB username [env: SCRAPER_METRICS_INFLUXDB_USER=]  [default:
+                                         worker]
+    -o, --log-level <LEVEL>              Specify the log level {error, warn, info, debug, trace, off} [env: LOG_LEVEL=]
+                                         [default: info]
+    -l, --log-path <PATH>                Specify the log-file path [env: SCRAPER_WORKER_LOG_PATH=]  [default:
+                                         worker.log]
+    -d, --enable-metrics <BOOLEAN>       Specify whether to enable metric logging [env: SCRAPER_METRICS_ENABLE=true]
+                                         [default: false]
+    -c, --rmq-collection <COLLECTION>    Specify the RabbitMQ collection queue to connect to [env:
+                                         SCRAPER_RABBITMQ_COLLECTION_QUEUE=]  [default: collection]
+    -e, --rmq-exchange <EXCHANGE>        Specify the RabbitMQ exchange to connect to [env: SCRAPER_RABBITMQ_EXCHANGE=]
+                                         [default: work]
+    -p, --rmq-port <PORT>                Specify the RabbitMQ port to connect to [env: SCRAPER_RABBITMQ_PORT=]
+                                         [default: 5672]
+    -n, --rmq-prefetch-count <COUNT>     Specify the number of tasks to prefetch [env: SCRAPER_RABBITMQ_PREFETCH_COUNT=]
+                                         [default: 5]
+    -q, --rmq-queue <QUEUE>              Specify the RabbitMQ queue to connect to [env: SCRAPER_RABBITMQ_QUEUE=]
+                                         [default: frontier]
+    -b, --redis-addr <ADDR>              Specify the Redis address [env: SCRAPER_REDIS_ADDRESS=]  [default: localhost]
+    -r, --redis-port <PORT>              Specify the redis-port to connect to [env: SCRAPER_REDIS_PORT=]  [default:
+                                         6379]
+    -s, --redis-set <SET>                Specify the redis set to connect to [env: SCRAPER_REDIS_SET=]  [default:
+                                         collection]
+    -a, --rmq-addr <ADDR>                Specify the RabbitMQ address [env: SCRAPER_RMQ_ADDRESS=]  [default: localhost]
+    -m, --sentinel <NAME>                An optional name of a master group for a sentinel Redis connection. [env:
+                                         SCRAPER_SENTINEL=]  [default: none]
 ```
 
 
