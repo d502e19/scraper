@@ -1,11 +1,15 @@
 use influx_db_client::{Client, Point, Points, Value, Precision, error};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub struct InfluxCredentials {
+    pub username: String,
+    pub password: String,
+}
+
 pub struct InfluxClient {
     address: String,
     port: i32,
-    username: String,
-    password: String,
+    credentials: Option<InfluxCredentials>,
     database: String,
     client: Client,
 }
@@ -13,19 +17,21 @@ pub struct InfluxClient {
 impl InfluxClient {
     pub fn new(address: &str,
                port: i32,
-               username: &str,
-               password: &str,
-               database: &str) -> Self {
-        return InfluxClient {
+               credentials: Option<InfluxCredentials>,
+               database: &str,
+    ) -> Self {
+        let mut client = Client::new(format!("http://{}:{}", address, port),
+                                 String::from(database));
+        if let Some(creds) = &credentials {
+            client = client.set_authentication(creds.username.clone(), creds.password.clone());
+        }
+        InfluxClient {
             address: String::from(address),
             port,
-            username: String::from(username),
-            password: String::from(password),
+            credentials,
             database: String::from(database),
-            client: Client::new(format!("http://{}:{}", address, port),
-                                String::from(database))
-                .set_authentication(username, password),
-        };
+            client,
+        }
     }
 
     /// Drop and create registered database, effectively resetting it.

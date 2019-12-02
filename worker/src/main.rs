@@ -25,7 +25,7 @@ use crate::defaultnormaliser::DefaultNormaliser;
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
 use crate::filter::filter::{Blacklist, NoFilter, Whitelist};
-use crate::metrics::influx_client::InfluxClient;
+use crate::metrics::influx_client::{InfluxClient, InfluxCredentials};
 use crate::rmqredis::RMQRedisManager;
 use crate::task::Task;
 use crate::traits::Filter;
@@ -226,6 +226,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .value_name("INT")
                 .help("Specify InfluxDB port")
         ).arg(
+            Arg::with_name("influx-authenticate")
+                .short("v")
+                .long("influx-authenticate")
+                .env("SCRAPER_METRICS_INFLUXDB_AUTHENTICATE")
+                .default_value("true")
+                .value_name("BOOLEAN")
+                .help("Specify whether to use username/password authentication when connecting to InfluxDB")
+        ).arg(
             Arg::with_name("influx-username")
                 .short("i")
                 .long("influx-user")
@@ -320,6 +328,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             filter,
         );
 
+        let influx_credentials = if args.value_of("influx-authenticate").unwrap().parse().unwrap() {
+            Some(InfluxCredentials {
+                username: args.value_of("influx-username").unwrap().to_string(),
+                password: args.value_of("influx-password").unwrap().to_string(),
+            })
+        } else {
+            None
+        };
+
         let influxdb_client = if args
             .value_of("metrics-enable")
             .unwrap()
@@ -332,8 +349,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .unwrap()
                     .parse()
                     .expect("The 'influx-port' argument was not an int"),
-                args.value_of("influx-username").unwrap(),
-                args.value_of("influx-password").unwrap(),
+                influx_credentials,
                 args.value_of("influx-database").unwrap(),
             ))
         } else {
