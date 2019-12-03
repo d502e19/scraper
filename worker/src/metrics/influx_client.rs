@@ -21,7 +21,7 @@ impl InfluxClient {
                database: &str,
     ) -> Self {
         let mut client = Client::new(format!("http://{}:{}", address, port),
-                                 String::from(database));
+                                     String::from(database));
         if let Some(creds) = &credentials {
             client = client.set_authentication(creds.username.clone(), creds.password.clone());
         }
@@ -57,16 +57,16 @@ impl InfluxClient {
     }
 }
 
-pub struct MetricSession {
+pub struct TimeSession {
     point: Point,
     start_time: i64,
     last_time: i64,
 }
 
-impl MetricSession {
-    pub fn new(measurement_name: &str, worker_instance: &str) -> MetricSession {
+impl TimeSession {
+    pub fn new(measurement_name: &str, worker_instance: &str) -> TimeSession {
         let time = get_timestamp_millis();
-        return MetricSession {
+        return TimeSession {
             point: Point::new(measurement_name)
                 .add_timestamp(time)
                 .add_tag("instance", Value::String(worker_instance.to_string()))
@@ -77,7 +77,7 @@ impl MetricSession {
     }
 
     /// Adds a measuring field to Point with given parameters
-    pub fn add_data_point(&mut self, field: &str) {
+    pub fn add_time_field(&mut self, field: &str) {
         let time = get_timestamp_millis();
         self.point.add_field(field, Value::Integer(time - self.last_time));
         // Save current time as last_time for next add_data_point
@@ -90,6 +90,43 @@ impl MetricSession {
     }
 
     /// Write point to InfluxDB, consuming self in the process
+    pub fn write_point(self, client: &InfluxClient) {
+        client.write_point(self.point);
+    }
+}
+
+pub struct CountSession {
+    point: Point,
+    last_count: i64,
+}
+
+impl CountSession {
+    pub fn new(measurement_name: &str, worker_instance: &str) -> CountSession {
+        let time = get_timestamp_millis();
+        return CountSession {
+            point: Point::new(measurement_name)
+                .add_timestamp(time)
+                .add_tag("instance", Value::String(worker_instance.to_string()))
+                .to_owned(),
+            last_count: 0,
+        };
+    }
+
+    pub fn add_first_count_field(&mut self, field: &str, count: i64) {
+        self.point.add_field(field, Value::Integer(count));
+        self.last_count = count;
+    }
+
+    pub fn add_count_field(&mut self, field: &str, count: i64) {
+        assert!(count <= self.last_count);
+        self.point.add_field(field, Value::Integer(self.last_count - count));
+        self.last_count = count;
+    }
+
+    pub fn add_final_count_field(&mut self, field: &str, count: i64) {
+        self.point.add_field(field, Value::Integer(count));
+    }
+
     pub fn write_point(self, client: &InfluxClient) {
         client.write_point(self.point);
     }
