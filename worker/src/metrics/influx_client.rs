@@ -138,7 +138,7 @@ pub fn get_timestamp_millis() -> i64 {
     match SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(time) => { return time.as_millis() as i64; }
         Err(e) => {
-            error!("Could not get system time");
+            error!("Could not get system time. {}", e);
             // Return zero if no time could be found to avoid breaking entire worker
             0
         }
