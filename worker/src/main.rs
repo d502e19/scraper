@@ -25,13 +25,14 @@ use crate::defaultnormaliser::DefaultNormaliser;
 use crate::downloader::DefaultDownloader;
 use crate::extractor::html::{HTMLExtractorBase, HTMLLinkExtractor};
 use crate::filter::filter::{Blacklist, NoFilter, Whitelist};
-use crate::metrics::influx_client::{InfluxClient, InfluxCredentials};
+use crate::metrics::influx_client::{InfluxClient, InfluxCredentials, get_timestamp_millis};
 use crate::rmqredis::RMQRedisManager;
 use crate::task::Task;
 use crate::traits::Filter;
 use crate::void::Void;
 use crate::worker::Worker;
-use std::time::SystemTime;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
 
 mod archive;
 mod defaultnormaliser;
@@ -257,6 +258,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .default_value("scraper_db")
                 .value_name("STRING")
                 .help("Specify InfluxDB database")
+        ).arg(
+        Arg::with_name("name-prefix")
+            .short("x")
+            .long("name")
+            .env("SCRAPER_NAME")
+            .default_value("worker")
+            .value_name("STRING")
+            .help("Specify the prefix to the naming of the worker")
         ).get_matches();
 
     // Load config for logging to stdout and logfile.
@@ -273,7 +282,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
     )) {
         info!("Build commit: {}", env!("VERGEN_SHA"));
-
+        // Hash unix timestamp in millis to get a pseudo-unique id
+        let mut hasher = DefaultHasher::new();
+        hasher.write(get_timestamp_millis().to_string().into_bytes().as_ref());
+        let hash = hasher.finish();
+        let worker_name = format!("{}-{}", args.value_of("name-prefix").unwrap(), &hash.to_string()[0..6]);
         info!(
             "Starting worker module using RabbitMQ({}:{}) and redis({}:{})",
             args.value_of("rmq-address").unwrap().to_string(),
@@ -319,7 +332,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let normaliser = DefaultNormaliser;
         let archive = Void;
         let worker = Worker::new(
-            "W1",
+            worker_name.as_ref(),
             Box::new(manager),
             Box::new(downloader),
             Box::new(extractor),

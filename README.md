@@ -41,6 +41,8 @@ OPTIONS:
                                            worker.log]
     -d, --enable-metrics <BOOLEAN>         Specify whether to enable metric logging [env: SCRAPER_METRICS_ENABLE=true]
                                            [default: false]
+    -x, --name <STRING>                    Specify the prefix to the naming of the worker [env: SCRAPER_NAME=]
+                                           [default: worker]
     -c, --rmq-collection <COLLECTION>      Specify the RabbitMQ collection queue to connect to [env:
                                            SCRAPER_RABBITMQ_COLLECTION_QUEUE=]  [default: collection]
     -e, --rmq-exchange <EXCHANGE>          Specify the RabbitMQ exchange to connect to [env: SCRAPER_RABBITMQ_EXCHANGE=]
