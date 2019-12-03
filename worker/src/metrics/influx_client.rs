@@ -144,6 +144,17 @@ pub fn write_task_url(url: &str, measurement: &str, worker_instance: &str, clien
         .to_owned());
 }
 
+/// Write a task_url measurement with a given name, error-kind, tagged by worker instance
+/// to Influx for error statistics
+pub fn write_task_error_url(url: &str, measurement: &str, error_kind: &str, worker_instance: &str, client: &InfluxClient) {
+    client.write_point(Point::new(measurement)
+        .add_timestamp(get_timestamp_millis())
+        .add_tag("instance", Value::String(worker_instance.to_string()))
+        .add_field("task_url", Value::String(url.to_string()))
+        .add_tag("error_kind", Value::String(error_kind.to_string()))
+        .to_owned());
+}
+
 /// Get current unix timestamp in milliseconds
 pub fn get_timestamp_millis() -> i64 {
     // Return current unix time as milliseconds if possible, otherwise zero
