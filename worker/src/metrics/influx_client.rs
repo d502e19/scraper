@@ -57,6 +57,7 @@ impl InfluxClient {
     }
 }
 
+/// Struct to encapsulate state of a time measurement on task processing
 pub struct TimeSession {
     point: Point,
     start_time: i64,
@@ -95,6 +96,7 @@ impl TimeSession {
     }
 }
 
+/// Struct to encapsulate state of discovered work count during task processing
 pub struct CountSession {
     point: Point,
     last_count: i64,
@@ -130,6 +132,16 @@ impl CountSession {
     pub fn write_point(self, client: &InfluxClient) {
         client.write_point(self.point);
     }
+}
+
+/// Write a task_url measurement with a given name, tagged by worker instance to Influx for
+/// duplicate work statistics
+pub fn write_task_url(url: &str, measurement: &str, worker_instance: &str, client: &InfluxClient) {
+    client.write_point(Point::new(measurement)
+        .add_timestamp(get_timestamp_millis())
+        .add_tag("instance", Value::String(worker_instance.to_string()))
+        .add_field("task_url", Value::String(url.to_string()))
+        .to_owned());
 }
 
 /// Get current unix timestamp in milliseconds
