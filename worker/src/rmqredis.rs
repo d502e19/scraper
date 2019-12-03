@@ -224,22 +224,29 @@ impl Manager for RMQRedisManager {
                     match Task::deserialise(msg.data) {
                         Err(_) => {
                             // Deserialisation failed. Discard the task
-                            self.channel.basic_reject(msg.delivery_tag, BasicRejectOptions::default())
+                            info!("Discarded task due to failed deserialisation");
+                            self.channel.basic_reject(msg.delivery_tag, BasicRejectOptions { requeue: false })
                         }
                         Ok(task) => {
                             // Resolve task
-                            match resolve_func(task) {
+                            match resolve_func(task.clone()) {
                                 TaskProcessResult::Ok => {
                                     self.channel.basic_ack(msg.delivery_tag, false)
                                 }
-                                TaskProcessResult::Err => self
-                                    .channel
-                                    // Do not requeue task if error is met
-                                    .basic_reject(msg.delivery_tag, BasicRejectOptions::default()),
-                                TaskProcessResult::Reject => self
-                                    .channel
-                                    // Requeue task if error is met
-                                    .basic_reject(msg.delivery_tag, BasicRejectOptions::default()),
+                                TaskProcessResult::Err => {
+                                    info!("Discarded task {}", task.url);
+                                    self
+                                        .channel
+                                        // Do not requeue task if error is met
+                                        .basic_reject(msg.delivery_tag, BasicRejectOptions { requeue: false })
+                                },
+                                TaskProcessResult::Reject => {
+                                    info!("Rejected task {}", task.url);
+                                    self
+                                        .channel
+                                        // Requeue task if error is met
+                                        .basic_reject(msg.delivery_tag, BasicRejectOptions { requeue: true })
+                                },
                             }
                         }
                     }
