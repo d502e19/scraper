@@ -245,7 +245,7 @@ impl Manager for RMQRedisManager {
                                     self
                                         .channel
                                         // Requeue task if error is met
-                                        .basic_reject(msg.delivery_tag, BasicRejectOptions { requeue: true })
+                                        .basic_reject(msg.delivery_tag, BasicRejectOptions { requeue: false })
                                 },
                             }
                         }
