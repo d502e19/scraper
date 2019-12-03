@@ -7,7 +7,7 @@ use crate::task::Task;
 use crate::traits::{Archive, Downloader, Extractor, Filter, Manager, Normaliser, TaskProcessResult};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::ops::Sub;
-use crate::metrics::influx_client::{InfluxClient, get_timestamp_millis, TimeSession, CountSession};
+use crate::metrics::influx_client::{InfluxClient, get_timestamp_millis, TimeSession, CountSession, write_task_url, write_task_error_url};
 use influx_db_client::{Points, Point, Value};
 
 /// A worker is the web crawler module that resolves tasks. The components of the worker
@@ -62,12 +62,21 @@ impl<S, D> Worker<S, D> {
             let mut count_session = CountSession::new("worker_processing_count", &self.name);
 
             info!("Worker {} received task {}", self.name, task.url);
-
+            if let Some(client) = &influxdb_client {
+                write_task_url(task.url.as_str(), "worker_duplicate_task", &self.name, client);
+            }
             time_session.add_time_field("receive_task_time");
 
             match self.downloader.fetch_page(&task) {
                 Err(e) => {
                     error!("{} failed to download a page. {}", self.name, e);
+                    if let Some(client) = &influxdb_client {
+                        write_task_error_url(task.url.as_str(),
+                                             "worker_error_task",
+                                             &format!("{:?}", e.kind),
+                                             &self.name,
+                                             client);
+                    }
                     return TaskProcessResult::from(e);
                 }
                 Ok(page) => {
@@ -76,6 +85,13 @@ impl<S, D> Worker<S, D> {
                     match self.extractor.extract_content(page, &task.url) {
                         Err(e) => {
                             error!("{} failed to extract data from page. {}", self.name, e);
+                            if let Some(client) = &influxdb_client {
+                                write_task_error_url(task.url.as_str(),
+                                                     "worker_error_task",
+                                                     &format!("{:?}", e.kind),
+                                                     &self.name,
+                                                     client);
+                            }
                             return TaskProcessResult::from(e);
                         }
                         Ok((mut urls, data)) => {
@@ -85,6 +101,13 @@ impl<S, D> Worker<S, D> {
                             // Archiving
                             if let Err(e) = self.archive.archive_content(data) {
                                 error!("{} failed archiving some data. {}", self.name, e);
+                                if let Some(client) = &influxdb_client {
+                                    write_task_error_url(task.url.as_str(),
+                                                         "worker_error_task",
+                                                         &format!("{:?}", e.kind),
+                                                         &self.name,
+                                                         client);
+                                }
                                 return TaskProcessResult::from(e);
                             }
                             time_session.add_time_field("archive_task_time");
@@ -112,11 +135,25 @@ impl<S, D> Worker<S, D> {
 
                                     if let Err(e) = self.manager.submit(new_tasks) {
                                         error!("{} failed submitting new tasks to the manager. {}", self.name, e);
+                                        if let Some(client) = &influxdb_client {
+                                            write_task_error_url(task.url.as_str(),
+                                                                 "worker_error_task",
+                                                                 &format!("{:?}", e.kind),
+                                                                 &self.name,
+                                                                 client);
+                                        }
                                         return TaskProcessResult::from(e);
                                     }
                                 }
                                 Err(e) => {
                                     error!("{} failed to check if tasks are present in the collection. {}", self.name, e);
+                                    if let Some(client) = &influxdb_client {
+                                        write_task_error_url(task.url.as_str(),
+                                                             "worker_error_task",
+                                                             &format!("{:?}", e.kind),
+                                                             &self.name,
+                                                             client);
+                                    }
                                     return TaskProcessResult::from(e);
                                 }
                             }
