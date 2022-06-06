@@ -16,7 +16,7 @@ build = "build.rs"
 
 [dependencies]
 futures = "0.1.29"
-tokio = "0.1"
+tokio = "1.8"
 lapin-futures = "0.28.0"
 redis = "0.12.0"
 url = "^2.1.0"
